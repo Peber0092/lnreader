@@ -134,6 +134,14 @@ const NovelInfoHeader = ({
     [navigation, novel.name],
   );
 
+  const handleGenrePress = useCallback(
+    (genre: string) =>
+      navigation.navigate('GlobalSearchScreen', {
+        searchText: genre,
+      }),
+    [navigation],
+  );
+
   const handleTitleLongPress = useCallback(() => {
     Clipboard.setStringAsync(novel.name).then(() =>
       showToast(getString('common.copiedToClipboard', { name: novel.name })),
@@ -274,7 +282,11 @@ const NovelInfoHeader = ({
               theme={theme}
             />
             {novel.genres ? (
-              <NovelGenres theme={theme} genres={novel.genres} />
+              <NovelGenres
+                theme={theme}
+                genres={novel.genres}
+                onGenrePress={handleGenrePress}
+              />
             ) : null}
           </>
         )}

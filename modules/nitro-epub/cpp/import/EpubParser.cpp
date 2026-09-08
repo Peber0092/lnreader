@@ -317,6 +317,18 @@ void parse_opf_from_folder(const std::string &base_dir,
     meta_out.artist = childByLocalName(metadata, "contributor").text().as_string();
     meta_out.summary = childByLocalName(metadata, "description").text().as_string();
 
+    for (pugi::xml_node child : metadata.children())
+    {
+        if (hasLocalName(child, "subject"))
+        {
+            std::string genre = child.text().as_string();
+            if (!genre.empty())
+            {
+                meta_out.genres.push_back(genre);
+            }
+        }
+    }
+
     std::unordered_map<std::string, std::string> id_to_href;
     std::unordered_map<std::string, std::string> id_to_media_type;
     std::unordered_set<std::string> image_paths;

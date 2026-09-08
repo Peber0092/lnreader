@@ -1,0 +1,124 @@
+name: Build Custom APK
+
+on:
+  push:
+    branches:
+      - '**'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  actions: read
+  contents: write
+
+env:
+  CI: 'true'
+  EXPO_NO_TELEMETRY: '1'
+  NODE_ENV: 'production'
+
+jobs:
+  build-android:
+    name: Build Custom APK
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set Up pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Set Up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Set Up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile --prefer-offline
+
+      - name: Configure Release Environment
+        run: |
+          pnpm generate:env:release \
+            --build-type "GitHub Action" \
+            --node-env "production"
+
+      - name: Generate Native Android Project
+        run: |
+          pnpm exec expo prebuild \
+            --platform android \
+            --clean \
+            --no-install \
+            --non-interactive
+
+      - name: Configure Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-provider: enhanced
+          cache-cleanup: on-success
+          add-job-summary: always
+
+      - name: Generate Preview Metadata
+        run: |
+          short_sha="${GITHUB_SHA::8}"
+          base_version_name="$(node --print "require('./app.json').expo.version")"
+          base_version_code="$(node --print "require('./app.json').expo.android.versionCode")"
+
+          echo "PRERELEASE_VERSION_CODE=$((base_version_code + GITHUB_RUN_NUMBER))" >> "$GITHUB_ENV"
+          echo "PRERELEASE_VERSION_NAME=${base_version_name}-custom.${short_sha}" >> "$GITHUB_ENV"
+          echo "PRERELEASE_ARTIFACT_NAME=LNReader-custom-${short_sha}" >> "$GITHUB_ENV"
+          echo "PRERELEASE_APK_NAME=LNReader-custom-${short_sha}.apk" >> "$GITHUB_ENV"
+
+      - name: Build Custom APK
+        working-directory: android
+        run: |
+          mkdir -p app/build/intermediates/sourcemaps/react/preRelease
+
+          ./gradlew :app:assemblePreRelease \
+            --build-cache \
+            --parallel \
+            -PpreReleaseVersionCode="$PRERELEASE_VERSION_CODE" \
+            -PpreReleaseVersionName="$PRERELEASE_VERSION_NAME" \
+            --stacktrace
+
+          mv \
+            app/build/outputs/apk/preRelease/app-preRelease.apk \
+            "app/build/outputs/apk/preRelease/$PRERELEASE_APK_NAME"
+
+      - name: Upload Custom APK Artifact
+        id: upload-apk
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.PRERELEASE_ARTIFACT_NAME }}
+          path: android/app/build/outputs/apk/preRelease/${{ env.PRERELEASE_APK_NAME }}
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 0
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
+        with:
+          tag_name: custom-${{ env.PRERELEASE_VERSION_NAME }}
+          name: "LNReader Custom (EPUB Genres Support) - ${{ env.PRERELEASE_VERSION_NAME }}"
+          body: |
+            ### Changes in this build:
+            - **Automatic EPUB Genre Parsing:** Reads `<dc:subject>` from local EPUBs and stores them as tags.
+            - **Clickable Genre Chips:** Tapping any genre chip in novel details searches for that genre.
+            - **Library Search by Genre:** Library search bar filters by genre/tags as well as title/author.
+          files: android/app/build/outputs/apk/preRelease/${{ env.PRERELEASE_APK_NAME }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

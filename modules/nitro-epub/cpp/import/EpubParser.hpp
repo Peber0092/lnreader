@@ -15,6 +15,7 @@ struct EpubMetadata {
   std::string summary;
   std::string author;
   std::string artist;
+  std::vector<std::string> genres;
   std::vector<Chapter> chapters;
   std::vector<std::string> cssPaths;
   std::vector<std::string> imagePaths;

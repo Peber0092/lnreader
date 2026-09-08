@@ -48,13 +48,14 @@ namespace margelo::nitro::nitroepub {
     std::optional<std::string> summary     SWIFT_PRIVATE;
     std::optional<std::string> author     SWIFT_PRIVATE;
     std::optional<std::string> artist     SWIFT_PRIVATE;
+    std::optional<std::string> genres     SWIFT_PRIVATE;
     std::vector<EpubChapter> chapters     SWIFT_PRIVATE;
     std::vector<std::string> cssPaths     SWIFT_PRIVATE;
     std::vector<std::string> imagePaths     SWIFT_PRIVATE;
 
   public:
     EpubNovel() = default;
-    explicit EpubNovel(std::string name, std::optional<std::string> cover, std::optional<std::string> summary, std::optional<std::string> author, std::optional<std::string> artist, std::vector<EpubChapter> chapters, std::vector<std::string> cssPaths, std::vector<std::string> imagePaths): name(name), cover(cover), summary(summary), author(author), artist(artist), chapters(chapters), cssPaths(cssPaths), imagePaths(imagePaths) {}
+    explicit EpubNovel(std::string name, std::optional<std::string> cover, std::optional<std::string> summary, std::optional<std::string> author, std::optional<std::string> artist, std::optional<std::string> genres, std::vector<EpubChapter> chapters, std::vector<std::string> cssPaths, std::vector<std::string> imagePaths): name(name), cover(cover), summary(summary), author(author), artist(artist), genres(genres), chapters(chapters), cssPaths(cssPaths), imagePaths(imagePaths) {}
 
   public:
     friend bool operator==(const EpubNovel& lhs, const EpubNovel& rhs) = default;
@@ -75,6 +76,7 @@ namespace margelo::nitro {
         JSIConverter<std::optional<std::string>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "summary"))),
         JSIConverter<std::optional<std::string>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "author"))),
         JSIConverter<std::optional<std::string>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "artist"))),
+        JSIConverter<std::optional<std::string>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "genres"))),
         JSIConverter<std::vector<margelo::nitro::nitroepub::EpubChapter>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "chapters"))),
         JSIConverter<std::vector<std::string>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "cssPaths"))),
         JSIConverter<std::vector<std::string>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "imagePaths")))
@@ -87,6 +89,7 @@ namespace margelo::nitro {
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "summary"), JSIConverter<std::optional<std::string>>::toJSI(runtime, arg.summary));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "author"), JSIConverter<std::optional<std::string>>::toJSI(runtime, arg.author));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "artist"), JSIConverter<std::optional<std::string>>::toJSI(runtime, arg.artist));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "genres"), JSIConverter<std::optional<std::string>>::toJSI(runtime, arg.genres));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "chapters"), JSIConverter<std::vector<margelo::nitro::nitroepub::EpubChapter>>::toJSI(runtime, arg.chapters));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "cssPaths"), JSIConverter<std::vector<std::string>>::toJSI(runtime, arg.cssPaths));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "imagePaths"), JSIConverter<std::vector<std::string>>::toJSI(runtime, arg.imagePaths));
@@ -105,6 +108,7 @@ namespace margelo::nitro {
       if (!JSIConverter<std::optional<std::string>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "summary")))) return false;
       if (!JSIConverter<std::optional<std::string>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "author")))) return false;
       if (!JSIConverter<std::optional<std::string>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "artist")))) return false;
+      if (!JSIConverter<std::optional<std::string>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "genres")))) return false;
       if (!JSIConverter<std::vector<margelo::nitro::nitroepub::EpubChapter>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "chapters")))) return false;
       if (!JSIConverter<std::vector<std::string>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "cssPaths")))) return false;
       if (!JSIConverter<std::vector<std::string>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "imagePaths")))) return false;

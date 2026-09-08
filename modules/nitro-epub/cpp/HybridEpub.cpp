@@ -24,6 +24,17 @@ std::shared_ptr<Promise<EpubNovel>> HybridEpub::parseNovelAndChapters(
       ? std::nullopt
       : std::optional(metadata.artist);
 
+    if (!metadata.genres.empty()) {
+      std::string joinedGenres;
+      for (size_t i = 0; i < metadata.genres.size(); ++i) {
+        if (i > 0) joinedGenres += ", ";
+        joinedGenres += metadata.genres[i];
+      }
+      result.genres = joinedGenres;
+    } else {
+      result.genres = std::nullopt;
+    }
+
     for (const auto& chapter : metadata.chapters) {
       result.chapters.emplace_back(chapter.name, chapter.path);
     }

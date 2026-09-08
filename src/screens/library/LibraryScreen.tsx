@@ -257,7 +257,8 @@ const LibraryScreen = ({ navigation }: LibraryScreenProps) => {
         ? unfilteredNovels.filter(
             n =>
               n.name.toLowerCase().includes(searchLower) ||
-              (n.author?.toLowerCase().includes(searchLower) ?? false),
+              (n.author?.toLowerCase().includes(searchLower) ?? false) ||
+              (n.genres?.toLowerCase().includes(searchLower) ?? false),
           )
         : unfilteredNovels;
 

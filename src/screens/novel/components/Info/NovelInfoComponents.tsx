@@ -273,13 +273,20 @@ const genreKeyExtractor = (_item: string, index: number) => 'genre' + index;
 interface NovelGenresProps {
   theme: ThemeColors;
   genres?: string | null;
+  onGenrePress?: (genre: string) => void;
 }
 
-const NovelGenres = memo(({ theme, genres }: NovelGenresProps) => {
+const NovelGenres = memo(({ theme, genres, onGenrePress }: NovelGenresProps) => {
   const data = useMemo(() => parseGenres(genres), [genres]);
   const renderGenre = useCallback(
-    ({ item }: { item: string }) => <Chip label={item} theme={theme} />,
-    [theme],
+    ({ item }: { item: string }) => (
+      <Chip
+        label={item}
+        theme={theme}
+        onPress={onGenrePress ? () => onGenrePress(item) : undefined}
+      />
+    ),
+    [theme, onGenrePress],
   );
 
   return (

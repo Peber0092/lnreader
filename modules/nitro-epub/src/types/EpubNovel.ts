@@ -16,6 +16,8 @@ export interface EpubNovel {
   author?: string
   /** Publication illustrator or artist, when present. */
   artist?: string
+  /** Publication genres or subjects, comma-separated, when present. */
+  genres?: string
   /** Chapters in reading order. */
   chapters: EpubChapter[]
   /** Absolute paths to extracted stylesheets. */
