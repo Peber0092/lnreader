@@ -17,6 +17,7 @@ export interface NovelCoverLayout {
   numColumns: number;
   showDownloadBadges: boolean;
   showUnreadBadges: boolean;
+  showStatusBadges: boolean;
 }
 
 const NovelCoverLayoutContext = createContext<NovelCoverLayout | null>(null);
@@ -29,6 +30,7 @@ export const useNovelCoverLayoutValue = (
     novelsPerRow = 3,
     showDownloadBadges = true,
     showUnreadBadges = true,
+    showStatusBadges = false,
   } = useLibrarySettings();
   const { width } = useWindowDimensions();
   const orientation = useDeviceOrientation();
@@ -51,6 +53,7 @@ export const useNovelCoverLayoutValue = (
       numColumns,
       showDownloadBadges,
       showUnreadBadges,
+      showStatusBadges,
     };
   }, [
     displayMode,
@@ -59,6 +62,7 @@ export const useNovelCoverLayoutValue = (
     orientation,
     showDownloadBadges,
     showUnreadBadges,
+    showStatusBadges,
     width,
   ]);
 };

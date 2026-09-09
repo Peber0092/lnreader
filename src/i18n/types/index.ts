@@ -418,10 +418,16 @@ export interface StringMap {
   'libraryScreen.bottomSheet.display.showNoOfItems': 'string';
   'libraryScreen.bottomSheet.display.unread': 'string';
   'libraryScreen.bottomSheet.display.unreadBadges': 'string';
+  'libraryScreen.bottomSheet.display.statusBadges': 'string';
   'libraryScreen.bottomSheet.filters.completed': 'string';
   'libraryScreen.bottomSheet.filters.downloaded': 'string';
   'libraryScreen.bottomSheet.filters.started': 'string';
   'libraryScreen.bottomSheet.filters.unread': 'string';
+  'libraryScreen.bottomSheet.filters.read': 'string';
+  'libraryScreen.bottomSheet.filters.ongoing': 'string';
+  'libraryScreen.bottomSheet.filters.onHiatus': 'string';
+  'libraryScreen.bottomSheet.filters.cancelled': 'string';
+  'libraryScreen.bottomSheet.filters.publishingFinished': 'string';
   'libraryScreen.bottomSheet.sortOrders.alphabetically': 'string';
   'libraryScreen.bottomSheet.sortOrders.dateAdded': 'string';
   'libraryScreen.bottomSheet.sortOrders.download': 'string';

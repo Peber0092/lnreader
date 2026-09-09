@@ -78,6 +78,91 @@ type TabViewLabelProps = {
   style?: StyleProp<TextStyle>;
 };
 
+const matchNovelFilters = (
+  novel: NovelInfo,
+  includedFilters: string[],
+  excludedFilters: string[],
+): boolean => {
+  const checkFilter = (key: string): boolean => {
+    switch (key) {
+      case 'downloaded':
+        return Boolean(
+          (novel.chaptersDownloaded && novel.chaptersDownloaded > 0) ||
+            novel.isLocal,
+        );
+      case 'unread':
+        return Boolean(
+          !novel.lastReadAt || novel.chaptersUnread === novel.totalChapters,
+        );
+      case 'started':
+        return Boolean(
+          novel.lastReadAt &&
+            novel.chaptersUnread &&
+            novel.chaptersUnread > 0,
+        );
+      case 'read':
+        return Boolean(
+          novel.totalChapters &&
+            novel.totalChapters > 0 &&
+            novel.chaptersUnread === 0,
+        );
+      case 'ongoing':
+        return novel.status?.toLowerCase() === 'ongoing';
+      case 'completed':
+        return novel.status?.toLowerCase() === 'completed';
+      case 'onHiatus':
+        return Boolean(novel.status?.toLowerCase().includes('hiatus'));
+      case 'cancelled':
+        return novel.status?.toLowerCase() === 'cancelled';
+      case 'publishingFinished':
+        return Boolean(novel.status?.toLowerCase().includes('finished'));
+      default:
+        return true;
+    }
+  };
+
+  if (includedFilters.length > 0) {
+    const matchesAllIncluded = includedFilters.every(checkFilter);
+    if (!matchesAllIncluded) return false;
+  }
+
+  if (excludedFilters.length > 0) {
+    const matchesAnyExcluded = excludedFilters.some(checkFilter);
+    if (matchesAnyExcluded) return false;
+  }
+
+  return true;
+};
+
+const matchNovelGenres = (
+  novel: NovelInfo,
+  includedGenres: string[],
+  excludedGenres: string[],
+): boolean => {
+  const novelTags = novel.genres
+    ? novel.genres
+        .split(',')
+        .map(g => g.trim().toLowerCase())
+        .filter(Boolean)
+    : [];
+
+  if (includedGenres.length > 0) {
+    const matchesAllIncluded = includedGenres.every(inc =>
+      novelTags.includes(inc.toLowerCase()),
+    );
+    if (!matchesAllIncluded) return false;
+  }
+
+  if (excludedGenres.length > 0) {
+    const matchesAnyExcluded = excludedGenres.some(exc =>
+      novelTags.includes(exc.toLowerCase()),
+    );
+    if (matchesAnyExcluded) return false;
+  }
+
+  return true;
+};
+
 const LibraryScreen = ({ navigation, route }: LibraryScreenProps) => {
   const { searchText, setSearchText, clearSearchbar } = useSearch();
   const theme = useTheme();
@@ -96,8 +181,20 @@ const LibraryScreen = ({ navigation, route }: LibraryScreenProps) => {
       lastUsedCategoryId,
       setLibrarySettings,
       selectedGenres = [],
+      includedGenres = [],
+      excludedGenres = [],
+      includedFilters = [],
+      excludedFilters = [],
     },
   } = useLibraryContext();
+
+  const incGenres = useMemo(
+    () => (includedGenres?.length ? includedGenres : selectedGenres || []),
+    [includedGenres, selectedGenres],
+  );
+  const excGenres = excludedGenres || [];
+  const incFilters = includedFilters || [];
+  const excFilters = excludedFilters || [];
 
   const { importNovel } = useImport();
   const { useLibraryFAB = false } = useAppSettings();
@@ -155,15 +252,13 @@ const LibraryScreen = ({ navigation, route }: LibraryScreenProps) => {
     if (!categories.length) return [];
     const idsSet = new Set(categories[index].novelIds);
     let list = library.filter(l => idsSet.has(l.id));
-    if (selectedGenres && selectedGenres.length > 0) {
-      list = list.filter(n => {
-        if (!n.genres) return false;
-        const tags = n.genres.split(',').map(g => g.trim().toLowerCase());
-        return selectedGenres.some(sel => tags.includes(sel.toLowerCase()));
-      });
-    }
+    list = list.filter(
+      n =>
+        matchNovelFilters(n, incFilters, excFilters) &&
+        matchNovelGenres(n, incGenres, excGenres),
+    );
     return list;
-  }, [categories, index, library, selectedGenres]);
+  }, [categories, index, library, incFilters, excFilters, incGenres, excGenres]);
 
   useEffect(() => {
     if (route?.params?.filterGenre) {
@@ -280,17 +375,11 @@ const LibraryScreen = ({ navigation, route }: LibraryScreenProps) => {
         );
       }
 
-      if (selectedGenres && selectedGenres.length > 0) {
-        novels = novels.filter(n => {
-          if (!n.genres) return false;
-          const novelTags = n.genres
-            .split(',')
-            .map(g => g.trim().toLowerCase());
-          return selectedGenres.some(selected =>
-            novelTags.includes(selected.toLowerCase()),
-          );
-        });
-      }
+      novels = novels.filter(
+        n =>
+          matchNovelFilters(n, incFilters, excFilters) &&
+          matchNovelGenres(n, incGenres, excGenres),
+      );
 
       return (
         <>
@@ -323,7 +412,10 @@ const LibraryScreen = ({ navigation, route }: LibraryScreenProps) => {
       pickAndImport,
       searchText,
       searchLower,
-      selectedGenres,
+      incFilters,
+      excFilters,
+      incGenres,
+      excGenres,
       styles.globalSearchBtn,
     ],
   );

@@ -13,6 +13,7 @@ export { default as ColorPreferenceItem } from './ColorPreferenceItem/ColorPrefe
 export { default as LoadingMoreIndicator } from './LoadingMoreIndicator/LoadingMoreIndicator';
 export { default as NovelCoverImage } from './NovelCoverImage';
 export { Checkbox } from './Checkbox/Checkbox';
+export { TriStateCheckbox, type TriState } from './Checkbox/TriStateCheckbox';
 export { RadioButton } from './RadioButton/RadioButton';
 export { Dialog } from './Dialog';
 export type {

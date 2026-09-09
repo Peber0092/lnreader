@@ -480,13 +480,19 @@
         "numberOfItems": "Number of Items",
         "showNoOfItems": "Show number of items",
         "unread": "Unread",
-        "unreadBadges": "Unread badges"
+        "unreadBadges": "Unread badges",
+        "statusBadges": "Status badges"
       },
       "filters": {
         "completed": "Completed",
         "downloaded": "Downloaded",
         "started": "Started",
-        "unread": "Unread"
+        "unread": "Unread",
+        "read": "Read",
+        "ongoing": "Ongoing",
+        "onHiatus": "On Hiatus",
+        "cancelled": "Cancelled",
+        "publishingFinished": "Publishing Finished"
       },
       "sortOrders": {
         "alphabetically": "Alphabetically",

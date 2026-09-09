@@ -128,6 +128,11 @@ export interface LibrarySettings {
   incognitoMode?: boolean;
   downloadedOnlyMode?: boolean;
   selectedGenres?: string[];
+  includedGenres?: string[];
+  excludedGenres?: string[];
+  includedFilters?: string[];
+  excludedFilters?: string[];
+  showStatusBadges?: boolean;
 }
 
 export interface GlobalUpdateCategoryFilters {
@@ -386,6 +391,11 @@ const defaultLibrarySettings: LibrarySettings = {
   novelsPerRow: 3,
   sortOrder: LibrarySortOrder.DateAdded_DESC,
   selectedGenres: [],
+  includedGenres: [],
+  excludedGenres: [],
+  includedFilters: [],
+  excludedFilters: [],
+  showStatusBadges: false,
 };
 
 export const useLibrarySettings = () => {

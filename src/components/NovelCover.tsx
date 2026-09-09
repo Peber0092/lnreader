@@ -17,6 +17,7 @@ import { ThemeColors } from '@theme/types';
 import { getUserAgent } from '@hooks/persisted/useUserAgent';
 import { getString } from '@i18n/translations';
 import SourceScreenSkeletonLoading from '@screens/browse/loadingAnimation/SourceScreenSkeletonLoading';
+import { translateNovelStatus } from '@utils/translateEnum';
 import NovelCoverImage from './NovelCoverImage';
 import { useNovelCoverLayout } from './NovelCoverLayoutContext';
 
@@ -94,6 +95,7 @@ function NovelCover<
     numColumns,
     showDownloadBadges,
     showUnreadBadges,
+    showStatusBadges,
   } = useNovelCoverLayout();
 
   const selectNovel = () => onLongPress(item);
@@ -172,6 +174,11 @@ function NovelCover<
           ) : null}
           {inActivity ? <InActivityBadge theme={theme} /> : null}
         </View>
+        {showStatusBadges && 'status' in item && item.status ? (
+          <View style={styles.statusBadgeContainer}>
+            <StatusBadge status={item.status} theme={theme} />
+          </View>
+        ) : null}
         <NovelCoverImage
           uri={item.cover}
           requestInit={requestInit}
@@ -202,6 +209,11 @@ function NovelCover<
   ) : (
     <ListView
       item={item}
+      statusBadge={
+        showStatusBadges && 'status' in item && item.status ? (
+          <StatusBadge status={item.status} theme={theme} />
+        ) : null
+      }
       downloadBadge={
         showDownloadBadges && isFromDB(item) && item.chaptersDownloaded ? (
           <DownloadBadge
@@ -341,6 +353,61 @@ const DownloadBadge: React.FC<DownloadBadgeProps> = ({
   </Text>
 );
 
+const getStatusColors = (status: string | undefined, theme: ThemeColors) => {
+  const s = status?.toLowerCase() || '';
+  if (s === 'completed' || s.includes('finished')) {
+    return {
+      backgroundColor: theme.secondaryContainer,
+      color: theme.onSecondaryContainer,
+    };
+  }
+  if (s === 'ongoing') {
+    return {
+      backgroundColor: theme.primaryContainer,
+      color: theme.onPrimaryContainer,
+    };
+  }
+  if (s.includes('hiatus') || s === 'cancelled') {
+    return {
+      backgroundColor: theme.errorContainer,
+      color: theme.onErrorContainer,
+    };
+  }
+  return {
+    backgroundColor: theme.surfaceVariant,
+    color: theme.onSurfaceVariant,
+  };
+};
+
+interface StatusBadgeProps {
+  status?: string;
+  theme: ThemeColors;
+}
+
+const StatusBadge: React.FC<StatusBadgeProps> = ({ status, theme }) => {
+  if (!status || status.toLowerCase() === 'unknown') {
+    return null;
+  }
+  const text = translateNovelStatus(status);
+  if (!text) return null;
+  const colors = getStatusColors(status, theme);
+  return (
+    <Text
+      numberOfLines={1}
+      style={[
+        styles.statusBadge,
+        styles.standardBorderRadius,
+        {
+          backgroundColor: colors.backgroundColor,
+          color: colors.color,
+        },
+      ]}
+    >
+      {text}
+    </Text>
+  );
+};
+
 const styles = StyleSheet.create({
   LeftBorderRadius: {
     borderBottomLeftRadius: 4,
@@ -427,6 +494,19 @@ const styles = StyleSheet.create({
   titleContainer: {
     borderRadius: 4,
     flex: 1,
+  },
+  statusBadge: {
+    fontSize: 11,
+    fontWeight: '600',
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+  },
+  statusBadgeContainer: {
+    maxWidth: '65%',
+    position: 'absolute',
+    right: 10,
+    top: 10,
+    zIndex: 1,
   },
   unreadBadge: {
     borderBottomRightRadius: 4,

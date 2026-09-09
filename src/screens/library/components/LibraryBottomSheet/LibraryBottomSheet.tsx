@@ -28,10 +28,12 @@ import { NovelInfo } from '@database/types';
 import { getString } from '@i18n/translations';
 import { Checkbox, SortItem } from '@components/Checkbox/Checkbox';
 import {
+  TriStateCheckbox,
+  type TriState,
+} from '@components/Checkbox/TriStateCheckbox';
+import {
   DisplayModes,
   displayModesList,
-  LibraryFilter,
-  libraryFilterList,
   LibrarySortOrder,
   librarySortOrderList,
 } from '@screens/library/constants/constants';
@@ -48,38 +50,154 @@ interface LibraryBottomSheetProps {
   library?: NovelInfo[];
 }
 
+interface FilterOption {
+  key: string;
+  label: string;
+}
+
+const READING_STATUS_FILTERS: FilterOption[] = [
+  {
+    key: 'downloaded',
+    label: getString('libraryScreen.bottomSheet.filters.downloaded'),
+  },
+  {
+    key: 'unread',
+    label: getString('libraryScreen.bottomSheet.filters.unread'),
+  },
+  {
+    key: 'started',
+    label: getString('libraryScreen.bottomSheet.filters.started'),
+  },
+  {
+    key: 'read',
+    label: getString('libraryScreen.bottomSheet.filters.read'),
+  },
+];
+
+const PUBLICATION_STATUS_FILTERS: FilterOption[] = [
+  {
+    key: 'ongoing',
+    label: getString('libraryScreen.bottomSheet.filters.ongoing'),
+  },
+  {
+    key: 'completed',
+    label: getString('libraryScreen.bottomSheet.filters.completed'),
+  },
+  {
+    key: 'onHiatus',
+    label: getString('libraryScreen.bottomSheet.filters.onHiatus'),
+  },
+  {
+    key: 'cancelled',
+    label: getString('libraryScreen.bottomSheet.filters.cancelled'),
+  },
+  {
+    key: 'publishingFinished',
+    label: getString('libraryScreen.bottomSheet.filters.publishingFinished'),
+  },
+];
+
 const FirstRoute = () => {
   const theme = useTheme();
   const {
-    filter,
+    includedFilters = [],
+    excludedFilters = [],
     setLibrarySettings,
     downloadedOnlyMode = false,
   } = useLibrarySettings();
 
+  const handleFilterPress = useCallback(
+    (key: string) => {
+      const isInc = includedFilters.includes(key);
+      const isExc = excludedFilters.includes(key);
+
+      if (!isInc && !isExc) {
+        setLibrarySettings({
+          filter: undefined,
+          includedFilters: [...includedFilters, key],
+          excludedFilters: excludedFilters.filter(f => f !== key),
+        });
+      } else if (isInc) {
+        setLibrarySettings({
+          filter: undefined,
+          includedFilters: includedFilters.filter(f => f !== key),
+          excludedFilters: [...excludedFilters, key],
+        });
+      } else {
+        setLibrarySettings({
+          filter: undefined,
+          includedFilters: includedFilters.filter(f => f !== key),
+          excludedFilters: excludedFilters.filter(f => f !== key),
+        });
+      }
+    },
+    [includedFilters, excludedFilters, setLibrarySettings],
+  );
+
+  const clearAllFilters = useCallback(() => {
+    setLibrarySettings({
+      filter: undefined,
+      includedFilters: [],
+      excludedFilters: [],
+    });
+  }, [setLibrarySettings]);
+
+  const activeFilterCount = includedFilters.length + excludedFilters.length;
+
+  const getFilterState = (key: string): TriState => {
+    if (includedFilters.includes(key)) return 'included';
+    if (excludedFilters.includes(key)) return 'excluded';
+    return 'neutral';
+  };
+
   return (
     <View style={styles.flex}>
-      <LegendList
-        recycleItems
-        estimatedItemSize={4}
-        extraData={[filter]}
-        data={libraryFilterList}
-        keyExtractor={item => `filter_${item.filter}`}
-        renderItem={({ item }) => (
-          <Checkbox
+      {activeFilterCount > 0 && (
+        <View style={styles.genresHeader}>
+          <Text
+            style={[styles.selectedCountText, { color: theme.onSurfaceVariant }]}
+          >
+            {`${activeFilterCount} active`}
+          </Text>
+          <Pressable
+            onPress={clearAllFilters}
+            android_ripple={{ color: theme.rippleColor }}
+            style={styles.clearBtn}
+          >
+            <Text style={[styles.clearBtnText, { color: theme.primary }]}>
+              Clear all
+            </Text>
+          </Pressable>
+        </View>
+      )}
+      <BottomSheetScrollView contentContainerStyle={styles.filterScrollContent}>
+        <Text style={[styles.sectionHeader, { color: theme.onSurfaceVariant }]}>
+          Reading status
+        </Text>
+        {READING_STATUS_FILTERS.map(item => (
+          <TriStateCheckbox
+            key={item.key}
             label={item.label}
+            state={getFilterState(item.key)}
             theme={theme}
-            status={filter === item.filter}
-            onPress={() =>
-              setLibrarySettings({
-                filter: filter === item.filter ? undefined : item.filter,
-              })
-            }
-            disabled={
-              item.filter === LibraryFilter.Downloaded && downloadedOnlyMode
-            }
+            onPress={() => handleFilterPress(item.key)}
+            disabled={item.key === 'downloaded' && downloadedOnlyMode}
           />
-        )}
-      />
+        ))}
+
+        <Text style={[styles.sectionHeader, { color: theme.onSurfaceVariant }]}>
+          Publication status
+        </Text>
+        {PUBLICATION_STATUS_FILTERS.map(item => (
+          <TriStateCheckbox
+            key={item.key}
+            label={item.label}
+            state={getFilterState(item.key)}
+            theme={theme}
+            onPress={() => handleFilterPress(item.key)}
+          />
+        ))}
+      </BottomSheetScrollView>
     </View>
   );
 };
@@ -91,7 +209,18 @@ interface GenresRouteProps {
 const GenresRoute: React.FC<GenresRouteProps> = ({ library: propLibrary }) => {
   const theme = useTheme();
   const { taxonomy } = useGenreTaxonomy();
-  const { selectedGenres = [], setLibrarySettings } = useLibrarySettings();
+  const {
+    selectedGenres = [],
+    includedGenres = [],
+    excludedGenres = [],
+    setLibrarySettings,
+  } = useLibrarySettings();
+
+  const incGenres = useMemo(
+    () => (includedGenres?.length ? includedGenres : selectedGenres || []),
+    [includedGenres, selectedGenres],
+  );
+  const excGenres = excludedGenres || [];
 
   const [dbNovels, setDbNovels] = useState<NovelWithGenres[]>([]);
   const [expandedCategories, setExpandedCategories] = useState<
@@ -124,7 +253,7 @@ const GenresRoute: React.FC<GenresRouteProps> = ({ library: propLibrary }) => {
   }, []);
 
   const handleParentToggle = useCallback(
-    (node: GenreTreeNode, isAllSelected: boolean) => {
+    (node: GenreTreeNode, currentState: TriState) => {
       const childNames: string[] = [];
       if (node.count > 0 || !node.children?.length) {
         childNames.push(node.name);
@@ -139,47 +268,101 @@ const GenresRoute: React.FC<GenresRouteProps> = ({ library: propLibrary }) => {
 
       const childNamesLower = new Set(childNames.map(c => c.toLowerCase()));
 
-      if (isAllSelected) {
+      if (currentState === 'included') {
+        const nextInc = incGenres.filter(
+          g => !childNamesLower.has(g.toLowerCase()),
+        );
+        const missingExc = childNames.filter(
+          name => !excGenres.some(g => g.toLowerCase() === name.toLowerCase()),
+        );
+        const nextExc = [...excGenres, ...missingExc];
         setLibrarySettings({
-          selectedGenres: selectedGenres.filter(
-            g => !childNamesLower.has(g.toLowerCase()),
-          ),
+          includedGenres: nextInc,
+          excludedGenres: nextExc,
+          selectedGenres: nextInc,
         });
-      } else {
-        const missing = childNames.filter(
-          name =>
-            !selectedGenres.some(g => g.toLowerCase() === name.toLowerCase()),
+      } else if (currentState === 'excluded') {
+        const nextInc = incGenres.filter(
+          g => !childNamesLower.has(g.toLowerCase()),
+        );
+        const nextExc = excGenres.filter(
+          g => !childNamesLower.has(g.toLowerCase()),
         );
         setLibrarySettings({
-          selectedGenres: [...selectedGenres, ...missing],
+          includedGenres: nextInc,
+          excludedGenres: nextExc,
+          selectedGenres: nextInc,
+        });
+      } else {
+        const missingInc = childNames.filter(
+          name => !incGenres.some(g => g.toLowerCase() === name.toLowerCase()),
+        );
+        const nextInc = [...incGenres, ...missingInc];
+        const nextExc = excGenres.filter(
+          g => !childNamesLower.has(g.toLowerCase()),
+        );
+        setLibrarySettings({
+          includedGenres: nextInc,
+          excludedGenres: nextExc,
+          selectedGenres: nextInc,
         });
       }
     },
-    [selectedGenres, setLibrarySettings],
+    [incGenres, excGenres, setLibrarySettings],
   );
 
   const handleChildToggle = useCallback(
     (genreName: string) => {
-      const isSelected = selectedGenres.some(
+      const isInc = incGenres.some(
         g => g.toLowerCase() === genreName.toLowerCase(),
       );
-      if (isSelected) {
+      const isExc = excGenres.some(
+        g => g.toLowerCase() === genreName.toLowerCase(),
+      );
+
+      if (!isInc && !isExc) {
+        const nextInc = [...incGenres, genreName];
+        const nextExc = excGenres.filter(
+          g => g.toLowerCase() !== genreName.toLowerCase(),
+        );
         setLibrarySettings({
-          selectedGenres: selectedGenres.filter(
-            g => g.toLowerCase() !== genreName.toLowerCase(),
-          ),
+          includedGenres: nextInc,
+          excludedGenres: nextExc,
+          selectedGenres: nextInc,
+        });
+      } else if (isInc) {
+        const nextInc = incGenres.filter(
+          g => g.toLowerCase() !== genreName.toLowerCase(),
+        );
+        const nextExc = [...excGenres, genreName];
+        setLibrarySettings({
+          includedGenres: nextInc,
+          excludedGenres: nextExc,
+          selectedGenres: nextInc,
         });
       } else {
+        const nextInc = incGenres.filter(
+          g => g.toLowerCase() !== genreName.toLowerCase(),
+        );
+        const nextExc = excGenres.filter(
+          g => g.toLowerCase() !== genreName.toLowerCase(),
+        );
         setLibrarySettings({
-          selectedGenres: [...selectedGenres, genreName],
+          includedGenres: nextInc,
+          excludedGenres: nextExc,
+          selectedGenres: nextInc,
         });
       }
     },
-    [selectedGenres, setLibrarySettings],
+    [incGenres, excGenres, setLibrarySettings],
   );
 
   const clearAll = useCallback(() => {
-    setLibrarySettings({ selectedGenres: [] });
+    setLibrarySettings({
+      selectedGenres: [],
+      includedGenres: [],
+      excludedGenres: [],
+    });
   }, [setLibrarySettings]);
 
   if (genreTree.length === 0) {
@@ -192,14 +375,20 @@ const GenresRoute: React.FC<GenresRouteProps> = ({ library: propLibrary }) => {
     );
   }
 
+  const activeCount = incGenres.length + excGenres.length;
+
   return (
     <View style={styles.flex}>
-      {selectedGenres.length > 0 && (
+      {activeCount > 0 && (
         <View style={styles.genresHeader}>
           <Text
             style={[styles.selectedCountText, { color: theme.onSurfaceVariant }]}
           >
-            {`${selectedGenres.length} selected`}
+            {incGenres.length > 0 && excGenres.length > 0
+              ? `${incGenres.length} included, ${excGenres.length} excluded`
+              : incGenres.length > 0
+              ? `${incGenres.length} included`
+              : `${excGenres.length} excluded`}
           </Text>
           <Pressable
             onPress={clearAll}
@@ -229,30 +418,33 @@ const GenresRoute: React.FC<GenresRouteProps> = ({ library: propLibrary }) => {
             }
           }
 
-          const selectedCount = childNames.filter(name =>
-            selectedGenres.some(g => g.toLowerCase() === name.toLowerCase()),
+          const incCount = childNames.filter(name =>
+            incGenres.some(g => g.toLowerCase() === name.toLowerCase()),
           ).length;
 
-          const isAllSelected =
-            childNames.length > 0 && selectedCount === childNames.length;
-          const isSomeSelected =
-            selectedCount > 0 && selectedCount < childNames.length;
+          const excCount = childNames.filter(name =>
+            excGenres.some(g => g.toLowerCase() === name.toLowerCase()),
+          ).length;
 
-          const checkboxStatus = isAllSelected
-            ? true
-            : isSomeSelected
-            ? ('indeterminate' as const)
-            : false;
+          let parentState: TriState = 'neutral';
+          if (incCount === childNames.length && childNames.length > 0) {
+            parentState = 'included';
+          } else if (excCount === childNames.length && childNames.length > 0) {
+            parentState = 'excluded';
+          } else if (incCount > 0 || excCount > 0) {
+            parentState = 'indeterminate';
+          }
 
           return (
             <View key={node.name} style={styles.categoryContainer}>
               <View style={styles.categoryRow}>
                 <View style={styles.categoryCheckboxContainer}>
-                  <Checkbox
-                    label={`${node.name} (${node.categoryTotal})`}
-                    status={checkboxStatus}
+                  <TriStateCheckbox
+                    label={node.name}
+                    count={node.categoryTotal}
+                    state={parentState}
                     theme={theme}
-                    onPress={() => handleParentToggle(node, isAllSelected)}
+                    onPress={() => handleParentToggle(node, parentState)}
                   />
                 </View>
                 {hasChildren && (
@@ -276,14 +468,24 @@ const GenresRoute: React.FC<GenresRouteProps> = ({ library: propLibrary }) => {
 
               {isExpanded &&
                 node.children?.map(child => {
-                  const isChildSelected = selectedGenres.some(
+                  const isChildInc = incGenres.some(
                     g => g.toLowerCase() === child.name.toLowerCase(),
                   );
+                  const isChildExc = excGenres.some(
+                    g => g.toLowerCase() === child.name.toLowerCase(),
+                  );
+                  const childState: TriState = isChildInc
+                    ? 'included'
+                    : isChildExc
+                    ? 'excluded'
+                    : 'neutral';
+
                   return (
                     <View key={child.name} style={styles.childRow}>
-                      <Checkbox
-                        label={`${child.name} (${child.count})`}
-                        status={isChildSelected}
+                      <TriStateCheckbox
+                        label={child.name}
+                        count={child.count}
+                        state={childState}
                         theme={theme}
                         onPress={() => handleChildToggle(child.name)}
                         viewStyle={styles.childCheckbox}
@@ -341,6 +543,7 @@ const ThirdRoute = () => {
     showDownloadBadges = true,
     showNumberOfNovels = false,
     showUnreadBadges = true,
+    showStatusBadges = false,
     displayMode = DisplayModes.Comfortable,
     setLibrarySettings,
   } = useLibrarySettings();
@@ -366,6 +569,16 @@ const ThirdRoute = () => {
         onPress={() =>
           setLibrarySettings({
             showUnreadBadges: !showUnreadBadges,
+          })
+        }
+        theme={theme}
+      />
+      <Checkbox
+        label={getString('libraryScreen.bottomSheet.display.statusBadges')}
+        status={showStatusBadges}
+        onPress={() =>
+          setLibrarySettings({
+            showStatusBadges: !showStatusBadges,
           })
         }
         theme={theme}
@@ -408,9 +621,21 @@ const LibraryBottomSheet: React.FC<LibraryBottomSheetProps> = ({
   library,
 }) => {
   const theme = useTheme();
-  const { selectedGenres = [] } = useLibrarySettings();
+  const {
+    selectedGenres = [],
+    includedGenres = [],
+    excludedGenres = [],
+    includedFilters = [],
+    excludedFilters = [],
+  } = useLibrarySettings();
 
   const layout = useWindowDimensions();
+
+  const totalFiltersActive =
+    (includedFilters?.length || 0) + (excludedFilters?.length || 0);
+  const totalGenresActive =
+    (includedGenres?.length ? includedGenres.length : selectedGenres.length) +
+    (excludedGenres?.length || 0);
 
   const renderScene = useCallback(
     ({ route: tabRoute }: { route: { key: string } }) => {
@@ -462,18 +687,22 @@ const LibraryBottomSheet: React.FC<LibraryBottomSheetProps> = ({
   const [index, setIndex] = useState(0);
   const routes = useMemo(
     () => [
-      { key: 'first', title: getString('common.filter') },
+      {
+        key: 'first',
+        title:
+          totalFiltersActive > 0
+            ? `${getString('common.filter')} (${totalFiltersActive})`
+            : getString('common.filter'),
+      },
       {
         key: 'genres',
         title:
-          selectedGenres.length > 0
-            ? `Genres (${selectedGenres.length})`
-            : 'Genres',
+          totalGenresActive > 0 ? `Genres (${totalGenresActive})` : 'Genres',
       },
       { key: 'second', title: getString('common.sort') },
       { key: 'third', title: getString('common.display') },
     ],
-    [selectedGenres.length],
+    [totalFiltersActive, totalGenresActive],
   );
 
   const renderCommonOptions = useCallback(
@@ -547,6 +776,9 @@ const styles = StyleSheet.create({
   clearBtnText: {
     fontSize: 13,
     fontWeight: '600',
+  },
+  filterScrollContent: {
+    paddingBottom: 24,
   },
   genresScrollContent: {
     paddingBottom: 24,
