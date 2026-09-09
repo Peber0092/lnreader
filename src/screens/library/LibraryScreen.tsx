@@ -592,6 +592,7 @@ const LibraryScreen = ({ navigation, route }: LibraryScreenProps) => {
       <LibraryBottomSheet
         bottomSheetRef={bottomSheetRef}
         style={bottomSheetStyle}
+        library={library}
       />
       <Portal>
         <Actionbar

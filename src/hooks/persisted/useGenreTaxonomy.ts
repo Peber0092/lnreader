@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useMMKVObject } from 'react-native-mmkv';
 import { GENRE_TAXONOMY, TaxonomyNode } from '@screens/GenreStatsScreen/taxonomy';
 import { normalizeGenre } from '@screens/GenreStatsScreen/utils';
@@ -52,8 +53,24 @@ export const registerGenresToTaxonomy = (rawGenres: string) => {
 };
 
 export const useGenreTaxonomy = () => {
-  const [taxonomy = GENRE_TAXONOMY, setTaxonomyRaw] =
+  const [taxonomyRaw, setTaxonomyRaw] =
     useMMKVObject<TaxonomyNode[]>(TAXONOMY_KEY);
+
+  const taxonomy = useMemo(() => {
+    if (!taxonomyRaw || taxonomyRaw.length === 0) {
+      return GENRE_TAXONOMY;
+    }
+    // If it's the old 3-item default from previous test builds, upgrade to the full 6-pillar taxonomy
+    if (
+      taxonomyRaw.length === 3 &&
+      taxonomyRaw.some(t => t.parent === 'Lead') &&
+      taxonomyRaw.some(t => t.parent === 'Romance')
+    ) {
+      setMMKVObject(TAXONOMY_KEY, GENRE_TAXONOMY);
+      return GENRE_TAXONOMY;
+    }
+    return taxonomyRaw;
+  }, [taxonomyRaw]);
 
   const setTaxonomy = (value: TaxonomyNode[]) => setTaxonomyRaw(value);
 

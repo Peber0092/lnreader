@@ -13,8 +13,12 @@ import MaterialCommunityIcons from '@react-native-vector-icons/material-design-i
 
 import { useLibrarySettings, useTheme } from '@hooks/persisted';
 import { useGenreTaxonomy } from '@hooks/persisted/useGenreTaxonomy';
-import { useLibraryContext } from '@components/Context/LibraryContext';
 import { buildGenreTree, GenreTreeNode } from '@screens/GenreStatsScreen/utils';
+import {
+  getNovelsWithGenresFromDb,
+  NovelWithGenres,
+} from '@database/queries/StatsQueries';
+import { NovelInfo } from '@database/types';
 import { getString } from '@i18n/translations';
 import { Checkbox, SortItem } from '@components/Checkbox/Checkbox';
 import {
@@ -35,6 +39,7 @@ import { LegendList } from '@legendapp/list/react-native';
 interface LibraryBottomSheetProps {
   bottomSheetRef: RefObject<BottomSheetModalMethods | null>;
   style?: StyleProp<ViewStyle>;
+  library?: NovelInfo[];
 }
 
 const FirstRoute = () => {
@@ -73,19 +78,37 @@ const FirstRoute = () => {
   );
 };
 
-const GenresRoute = () => {
+interface GenresRouteProps {
+  library?: NovelInfo[];
+}
+
+const GenresRoute: React.FC<GenresRouteProps> = ({ library: propLibrary }) => {
   const theme = useTheme();
-  const { library = [] } = useLibraryContext();
   const { taxonomy } = useGenreTaxonomy();
   const { selectedGenres = [], setLibrarySettings } = useLibrarySettings();
 
+  const [dbNovels, setDbNovels] = useState<NovelWithGenres[]>([]);
   const [expandedCategories, setExpandedCategories] = useState<
     Record<string, boolean>
   >({});
 
+  useEffect(() => {
+    if (!propLibrary || propLibrary.length === 0) {
+      getNovelsWithGenresFromDb().then(setDbNovels).catch(() => {});
+    }
+  }, [propLibrary]);
+
+  const activeNovels = useMemo(() => {
+    if (propLibrary && propLibrary.length > 0) {
+      return propLibrary;
+    }
+    return dbNovels;
+  }, [propLibrary, dbNovels]);
+
   const genreTree = useMemo(() => {
-    return buildGenreTree(library as any, taxonomy);
-  }, [library, taxonomy]);
+    const tree = buildGenreTree(activeNovels as any, taxonomy);
+    return tree.filter(n => n.name.toLowerCase() !== 'unknown');
+  }, [activeNovels, taxonomy]);
 
   const toggleExpand = useCallback((categoryName: string) => {
     setExpandedCategories(prev => ({
@@ -373,21 +396,33 @@ const ThirdRoute = () => {
   );
 };
 
-const bottomSheetSceneMap = SceneMap({
-  first: FirstRoute,
-  genres: GenresRoute,
-  second: SecondRoute,
-  third: ThirdRoute,
-});
-
 const LibraryBottomSheet: React.FC<LibraryBottomSheetProps> = ({
   bottomSheetRef,
   style,
+  library,
 }) => {
   const theme = useTheme();
   const { selectedGenres = [] } = useLibrarySettings();
 
   const layout = useWindowDimensions();
+
+  const renderScene = useCallback(
+    ({ route: tabRoute }: { route: { key: string } }) => {
+      switch (tabRoute.key) {
+        case 'first':
+          return <FirstRoute />;
+        case 'genres':
+          return <GenresRoute library={library} />;
+        case 'second':
+          return <SecondRoute />;
+        case 'third':
+          return <ThirdRoute />;
+        default:
+          return null;
+      }
+    },
+    [library],
+  );
 
   const renderTabBar = useCallback(
     (props: any) => (
@@ -460,7 +495,7 @@ const LibraryBottomSheet: React.FC<LibraryBottomSheetProps> = ({
           commonOptions={commonOptions}
           navigationState={{ index, routes }}
           renderTabBar={renderTabBar}
-          renderScene={bottomSheetSceneMap}
+          renderScene={renderScene}
           onIndexChange={setIndex}
           initialLayout={{ width: layout.width }}
           style={styles.tabView}
