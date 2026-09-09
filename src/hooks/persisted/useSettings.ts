@@ -127,6 +127,7 @@ export interface LibrarySettings {
   novelsPerRow?: number;
   incognitoMode?: boolean;
   downloadedOnlyMode?: boolean;
+  selectedGenres?: string[];
 }
 
 export interface GlobalUpdateCategoryFilters {
@@ -384,6 +385,7 @@ const defaultLibrarySettings: LibrarySettings = {
   showUnreadBadges: true,
   novelsPerRow: 3,
   sortOrder: LibrarySortOrder.DateAdded_DESC,
+  selectedGenres: [],
 };
 
 export const useLibrarySettings = () => {

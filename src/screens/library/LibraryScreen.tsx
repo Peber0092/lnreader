@@ -78,7 +78,7 @@ type TabViewLabelProps = {
   style?: StyleProp<TextStyle>;
 };
 
-const LibraryScreen = ({ navigation }: LibraryScreenProps) => {
+const LibraryScreen = ({ navigation, route }: LibraryScreenProps) => {
   const { searchText, setSearchText, clearSearchbar } = useSearch();
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
@@ -95,6 +95,7 @@ const LibraryScreen = ({ navigation }: LibraryScreenProps) => {
       incognitoMode,
       lastUsedCategoryId,
       setLibrarySettings,
+      selectedGenres = [],
     },
   } = useLibraryContext();
 
@@ -153,8 +154,23 @@ const LibraryScreen = ({ navigation }: LibraryScreenProps) => {
   const currentNovels = useMemo(() => {
     if (!categories.length) return [];
     const idsSet = new Set(categories[index].novelIds);
-    return library.filter(l => idsSet.has(l.id));
-  }, [categories, index, library]);
+    let list = library.filter(l => idsSet.has(l.id));
+    if (selectedGenres && selectedGenres.length > 0) {
+      list = list.filter(n => {
+        if (!n.genres) return false;
+        const tags = n.genres.split(',').map(g => g.trim().toLowerCase());
+        return selectedGenres.some(sel => tags.includes(sel.toLowerCase()));
+      });
+    }
+    return list;
+  }, [categories, index, library, selectedGenres]);
+
+  useEffect(() => {
+    if (route?.params?.filterGenre) {
+      setSearchText(route.params.filterGenre);
+      navigation.setParams({ filterGenre: undefined });
+    }
+  }, [route?.params?.filterGenre, setSearchText, navigation]);
 
   useBackHandler(() => {
     if (selectedNovelIds.length) {
@@ -239,7 +255,7 @@ const LibraryScreen = ({ navigation }: LibraryScreenProps) => {
   );
   const renderScene = useCallback(
     ({
-      route,
+      route: sceneRoute,
     }: {
       route: {
         id: number;
@@ -250,17 +266,31 @@ const LibraryScreen = ({ navigation }: LibraryScreenProps) => {
         title: string;
       };
     }) => {
-      const idsSet = new Set(route.novelIds);
+      const idsSet = new Set(sceneRoute.novelIds);
       const unfilteredNovels = library.filter(l => idsSet.has(l.id));
 
-      const novels = searchLower
-        ? unfilteredNovels.filter(
-            n =>
-              n.name.toLowerCase().includes(searchLower) ||
-              (n.author?.toLowerCase().includes(searchLower) ?? false) ||
-              (n.genres?.toLowerCase().includes(searchLower) ?? false),
-          )
-        : unfilteredNovels;
+      let novels = unfilteredNovels;
+
+      if (searchLower) {
+        novels = novels.filter(
+          n =>
+            n.name.toLowerCase().includes(searchLower) ||
+            (n.author?.toLowerCase().includes(searchLower) ?? false) ||
+            (n.genres?.toLowerCase().includes(searchLower) ?? false),
+        );
+      }
+
+      if (selectedGenres && selectedGenres.length > 0) {
+        novels = novels.filter(n => {
+          if (!n.genres) return false;
+          const novelTags = n.genres
+            .split(',')
+            .map(g => g.trim().toLowerCase());
+          return selectedGenres.some(selected =>
+            novelTags.includes(selected.toLowerCase()),
+          );
+        });
+      }
 
       return (
         <>
@@ -278,8 +308,8 @@ const LibraryScreen = ({ navigation }: LibraryScreenProps) => {
             />
           ) : null}
           <LibraryView
-            categoryId={route.id}
-            categoryName={route.name}
+            categoryId={sceneRoute.id}
+            categoryName={sceneRoute.name}
             novels={novels}
             pickAndImport={pickAndImport}
             navigation={navigation}
@@ -293,6 +323,7 @@ const LibraryScreen = ({ navigation }: LibraryScreenProps) => {
       pickAndImport,
       searchText,
       searchLower,
+      selectedGenres,
       styles.globalSearchBtn,
     ],
   );

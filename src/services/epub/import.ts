@@ -18,6 +18,7 @@ import NativeZipArchive from '@modules/native-zip-archive';
 import { epub } from '@modules/nitro-epub';
 import { showToast } from '@utils/showToast';
 import { createImportProgressReporter } from './importProgress';
+import { registerGenresToTaxonomy } from '@hooks/persisted/useGenreTaxonomy';
 
 const decodePath = (path: string) => {
   try {
@@ -69,6 +70,9 @@ const insertLocalNovel = async (
       isLocal: true,
       totalPages: 0,
     });
+    if (genres) {
+      registerGenresToTaxonomy(genres);
+    }
     return insertId;
   }
   throw new Error(getString('advancedSettingsScreen.novelInsertFailed'));

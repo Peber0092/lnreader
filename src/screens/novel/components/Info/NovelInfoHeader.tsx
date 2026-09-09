@@ -135,10 +135,13 @@ const NovelInfoHeader = ({
   );
 
   const handleGenrePress = useCallback(
-    (genre: string) =>
-      navigation.navigate('GlobalSearchScreen', {
-        searchText: genre,
-      }),
+    (genre: string) => {
+      // Navigate to Library and set filter
+      (navigation as any).navigate('BottomNavigator', {
+        screen: 'Library',
+        params: { filterGenre: genre },
+      });
+    },
     [navigation],
   );
 
