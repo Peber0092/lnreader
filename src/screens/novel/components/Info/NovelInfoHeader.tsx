@@ -126,13 +126,11 @@ const NovelInfoHeader = ({
     [novel.id, novel.status],
   );
 
-  const handleTitlePress = useCallback(
-    () =>
-      navigation.replace('GlobalSearchScreen', {
-        searchText: novel.name,
-      }),
-    [navigation, novel.name],
-  );
+  const handleTitlePress = useCallback(() => {
+    Clipboard.setStringAsync(novel.name).then(() =>
+      showToast(getString('common.copiedToClipboard', { name: novel.name })),
+    );
+  }, [novel.name]);
 
   const handleGenrePress = useCallback(
     (genre: string) => {
@@ -145,11 +143,7 @@ const NovelInfoHeader = ({
     [navigation],
   );
 
-  const handleTitleLongPress = useCallback(() => {
-    Clipboard.setStringAsync(novel.name).then(() =>
-      showToast(getString('common.copiedToClipboard', { name: novel.name })),
-    );
-  }, [novel.name]);
+  const handleTitleLongPress = handleTitlePress;
 
   const handleFollowNovel = useCallback(async () => {
     if (isLoading) {

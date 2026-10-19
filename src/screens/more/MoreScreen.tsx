@@ -19,14 +19,7 @@ const MoreScreen = ({ navigation }: MoreStackScreenProps) => {
   const [taskQueue] = useMMKVObject<QueuedBackgroundTask[]>(
     BACKGROUND_TASKS_STORE_KEY,
   );
-  const {
-    incognitoMode = false,
-    downloadedOnlyMode = false,
-    setLibrarySettings,
-  } = useLibrarySettings();
-
-  const enableDownloadedOnlyMode = () =>
-    setLibrarySettings({ downloadedOnlyMode: !downloadedOnlyMode });
+  const { incognitoMode = false, setLibrarySettings } = useLibrarySettings();
 
   const enableIncognitoMode = () =>
     setLibrarySettings({ incognitoMode: !incognitoMode });
@@ -58,39 +51,6 @@ const MoreScreen = ({ navigation }: MoreStackScreenProps) => {
           theme={theme}
         />
         <List.Section>
-          <Pressable
-            android_ripple={{ color: theme.rippleColor }}
-            style={styles.pressable}
-            onPress={enableDownloadedOnlyMode}
-          >
-            <View style={styles.row}>
-              <List.Icon theme={theme} icon="cloud-off-outline" />
-              <View style={styles.marginLeft16}>
-                <Text
-                  style={[
-                    {
-                      color: theme.onSurface,
-                    },
-                    styles.fontSize16,
-                  ]}
-                >
-                  {getString('moreScreen.downloadOnly')}
-                </Text>
-                <Text
-                  style={[
-                    styles.description,
-                    { color: theme.onSurfaceVariant },
-                  ]}
-                >
-                  {getString('moreScreen.downloadOnlyDesc')}
-                </Text>
-              </View>
-            </View>
-            <Switch
-              value={downloadedOnlyMode}
-              onValueChange={enableDownloadedOnlyMode}
-            />
-          </Pressable>
           <Pressable
             android_ripple={{ color: theme.rippleColor }}
             style={styles.pressable}
@@ -133,16 +93,6 @@ const MoreScreen = ({ navigation }: MoreStackScreenProps) => {
             onPress={() =>
               navigation.navigate('MoreStack', {
                 screen: 'TaskQueue',
-              })
-            }
-            theme={theme}
-          />
-          <List.Item
-            title={getString('common.downloads')}
-            icon="folder-download"
-            onPress={() =>
-              navigation.navigate('MoreStack', {
-                screen: 'Downloads',
               })
             }
             theme={theme}

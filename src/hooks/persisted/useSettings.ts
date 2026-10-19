@@ -114,6 +114,8 @@ export interface BrowseSettings {
 export interface LibrarySettings {
   /** User-selected category for newly added novels. */
   defaultCategoryId?: number;
+  /** Prompt for categories whenever a novel is added to the library. */
+  promptForCategoryOnAdd?: boolean;
   /** Last category viewed in the library. */
   lastUsedCategoryId?: number;
   globalUpdateExcludeCategoryIds?: number[];
@@ -122,6 +124,7 @@ export interface LibrarySettings {
   filter?: LibraryFilter;
   showDownloadBadges?: boolean;
   showUnreadBadges?: boolean;
+  showContinueReadingButton?: boolean;
   showNumberOfNovels?: boolean;
   displayMode?: DisplayModes;
   novelsPerRow?: number;
@@ -382,12 +385,14 @@ export const useBrowseSettings = () => {
 };
 
 const defaultLibrarySettings: LibrarySettings = {
+  promptForCategoryOnAdd: false,
   showNumberOfNovels: false,
   downloadedOnlyMode: false,
   incognitoMode: false,
   displayMode: DisplayModes.Comfortable,
-  showDownloadBadges: true,
+  showDownloadBadges: false,
   showUnreadBadges: true,
+  showContinueReadingButton: false,
   novelsPerRow: 3,
   sortOrder: LibrarySortOrder.DateAdded_DESC,
   selectedGenres: [],

@@ -1,13 +1,17 @@
-import React, { useMemo } from 'react';
-import { StyleSheet, View, Text, StatusBar } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { StyleSheet, View, Text, StatusBar, ScrollView } from 'react-native';
 import ErrorBoundary from 'react-native-error-boundary';
 import * as Clipboard from 'expo-clipboard';
+import DeviceInfo from 'react-native-device-info';
+import { BUILD_TYPE, GIT_HASH } from '@env';
+import { version } from '../../../package.json';
 import { getString } from '@i18n/translations';
 import { getErrorChainMessages } from '@utils/error';
 import { showToast } from '@utils/showToast';
 import { Button, List } from '@components';
 import { useTheme } from '@hooks/persisted';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { restartApplication, shareCrashLogs } from '@services/crashLogs';
 
 interface ErrorFallbackProps {
   error: Error;
@@ -19,6 +23,7 @@ export const ErrorFallback: React.FC<ErrorFallbackProps> = ({
   resetError,
 }) => {
   const theme = useTheme();
+  const [isSharing, setIsSharing] = useState(false);
 
   const fallbackGetString = (
     key: Parameters<typeof getString>[0],
@@ -33,21 +38,51 @@ export const ErrorFallback: React.FC<ErrorFallbackProps> = ({
   };
 
   const chainMessages = useMemo(() => getErrorChainMessages(error), [error]);
+  const versionDetails = [
+    `${fallbackGetString(
+      'aboutScreen.version',
+      'Version',
+    )}: ${version} (${DeviceInfo.getBuildNumber()})`,
+    BUILD_TYPE || 'Custom build',
+    GIT_HASH,
+  ]
+    .filter(Boolean)
+    .join(' · ');
 
-  const handleCopyStackTrace = async () => {
+  const copyStackTrace = async () => {
     try {
       const message = chainMessages.join('\n\nCaused by: ');
       await Clipboard.setStringAsync(`${message}\n\n${error.stack}`);
-      showToast(
-        fallbackGetString(
-          'common.copiedToClipboard',
-          'Copied to clipboard: Stack trace',
-          { name: 'Stack trace' },
-        ),
-      );
+      return true;
     } catch {
-      // clipboard failure is non-critical
+      return false;
     }
+  };
+
+  const handleShareCrashLogs = async () => {
+    setIsSharing(true);
+    try {
+      await shareCrashLogs(error);
+    } catch {
+      const copiedStackTrace = await copyStackTrace();
+      showToast(
+        copiedStackTrace
+          ? fallbackGetString(
+              'errorBoundary.shareCrashLogsFailed',
+              'Could not share crash logs. The stack trace was copied instead.',
+            )
+          : fallbackGetString(
+              'errorBoundary.shareCrashLogsFailedWithoutCopy',
+              'Could not share crash logs or copy the stack trace.',
+            ),
+      );
+    } finally {
+      setIsSharing(false);
+    }
+  };
+
+  const handleRestart = () => {
+    restartApplication(resetError).catch(resetError);
   };
 
   return (
@@ -65,41 +100,49 @@ export const ErrorFallback: React.FC<ErrorFallbackProps> = ({
         <Text style={[styles.errorDesc, { color: theme.onSurface }]}>
           {fallbackGetString(
             'errorBoundary.description',
-            'The application ran into an unexpected error. Please copy the stack trace below and share it on our Discord support channel.',
+            'The application ran into an unexpected error. Please share the crash logs in our Discord support channel.',
           )}
         </Text>
         <Text
+          style={[styles.versionDetails, { color: theme.onSurfaceVariant }]}
+        >
+          {versionDetails}
+        </Text>
+        <ScrollView
           style={[
             styles.errorCtn,
             {
               backgroundColor: theme.surfaceVariant,
-              color: theme.onSurfaceVariant,
             },
           ]}
-          numberOfLines={20}
+          contentContainerStyle={styles.errorContent}
         >
-          {`${chainMessages.join('\n\nCaused by: ')}\n\n${error.stack}`}
-        </Text>
+          <Text style={[styles.errorText, { color: theme.onSurfaceVariant }]}>
+            {`${chainMessages.join('\n\nCaused by: ')}\n\n${error.stack}`}
+          </Text>
+        </ScrollView>
       </View>
       <List.Divider theme={theme} />
-      <Button
-        onPress={handleCopyStackTrace}
-        title={fallbackGetString(
-          'errorBoundary.copyStackTrace',
-          'Copy stack trace',
-        )}
-        style={styles.copyButtonCtn}
-        mode="outlined"
-      />
-      <Button
-        onPress={resetError}
-        title={fallbackGetString(
-          'errorBoundary.restart',
-          'Restart the application',
-        )}
-        style={styles.buttonCtn}
-        mode="contained"
-      />
+      <View style={styles.actionsCtn}>
+        <Button
+          disabled={isSharing}
+          loading={isSharing}
+          onPress={handleShareCrashLogs}
+          title={fallbackGetString(
+            'errorBoundary.shareCrashLogs',
+            'Share crash logs',
+          )}
+          mode="outlined"
+        />
+        <Button
+          onPress={handleRestart}
+          title={fallbackGetString(
+            'errorBoundary.restart',
+            'Restart the application',
+          )}
+          mode="contained"
+        />
+      </View>
     </SafeAreaView>
   );
 };
@@ -117,33 +160,40 @@ const AppErrorBoundary: React.FC<AppErrorBoundaryProps> = ({ children }) => {
 export default AppErrorBoundary;
 
 const styles = StyleSheet.create({
-  buttonCtn: {
-    margin: 16,
-    marginBottom: 32,
-  },
-  copyButtonCtn: {
-    margin: 16,
-    marginBottom: 8,
+  actionsCtn: {
+    gap: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 20,
   },
   errorCtn: {
+    flex: 1,
     borderRadius: 8,
-    lineHeight: 20,
-    marginVertical: 16,
+    marginBottom: 16,
+  },
+  errorContent: {
     paddingHorizontal: 8,
     paddingVertical: 16,
   },
+  errorText: {
+    lineHeight: 20,
+  },
   errorDesc: {
     lineHeight: 20,
-    marginVertical: 8,
+    marginTop: 8,
   },
   errorInfoCtn: {
     flex: 1,
-    justifyContent: 'center',
     padding: 16,
+    paddingTop: 32,
   },
   errorTitle: {
     fontSize: 20,
     marginBottom: 8,
+    textAlign: 'center',
+  },
+  versionDetails: {
+    lineHeight: 24,
+    marginVertical: 16,
     textAlign: 'center',
   },
   mainCtn: {

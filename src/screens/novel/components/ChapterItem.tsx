@@ -1,9 +1,6 @@
 import React, { memo, useCallback, useMemo, ReactNode } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
-import {
-  ChapterBookmarkButton,
-  DownloadButton,
-} from './Chapter/ChapterDownloadButtons';
+import { ChapterBookmarkButton } from './Chapter/ChapterDownloadButtons';
 import { ThemeColors } from '@theme/types';
 import { ChapterInfo } from '@database/types';
 import MaterialCommunityIcons from '@react-native-vector-icons/material-design-icons';
@@ -31,17 +28,13 @@ interface ChapterItemProps {
 
 const ChapterItem: React.FC<ChapterItemProps> = ({
   chapter,
-  isDownloading,
   isBookmarked,
   isSelected,
-  isLocal,
   variant = 'default',
   theme,
   showChapterTitles,
   novelName,
   left,
-  onDeleteChapter,
-  onDownloadChapter,
   onSelectPress,
   onSelectLongPress,
   dateFormat = 'default',
@@ -60,14 +53,6 @@ const ChapterItem: React.FC<ChapterItemProps> = ({
   const handleLongPress = useCallback(
     () => onSelectLongPress?.(chapter),
     [onSelectLongPress, chapter],
-  );
-  const handleDelete = useCallback(
-    () => onDeleteChapter(chapter),
-    [onDeleteChapter, chapter],
-  );
-  const handleDownload = useCallback(
-    () => onDownloadChapter(chapter),
-    [onDownloadChapter, chapter],
   );
 
   const selectedStyle = useMemo(
@@ -193,15 +178,6 @@ const ChapterItem: React.FC<ChapterItemProps> = ({
             </View>
           </View>
         </View>
-        {!isLocal ? (
-          <DownloadButton
-            isDownloading={isDownloading}
-            isDownloaded={chapter.isDownloaded ?? false}
-            theme={theme}
-            deleteChapter={handleDelete}
-            downloadChapter={handleDownload}
-          />
-        ) : null}
       </Pressable>
     </View>
   );

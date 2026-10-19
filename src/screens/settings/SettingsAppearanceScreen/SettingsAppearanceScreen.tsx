@@ -43,7 +43,6 @@ const AppearanceSettings = ({ navigation }: AppearanceSettingsScreenProps) => {
 
   const {
     showHistoryTab,
-    showUpdatesTab,
     showLabelsInNav,
     hideBackdrop,
     useFabForContinueReading,
@@ -277,12 +276,6 @@ const AppearanceSettings = ({ navigation }: AppearanceSettingsScreenProps) => {
           <List.SubHeader theme={theme}>
             {getString('appearanceScreen.navbar')}
           </List.SubHeader>
-          <SettingSwitch
-            label={getString('appearanceScreen.showUpdatesInTheNav')}
-            value={showUpdatesTab}
-            onPress={() => setAppSettings({ showUpdatesTab: !showUpdatesTab })}
-            theme={theme}
-          />
           <SettingSwitch
             label={getString('appearanceScreen.showHistoryInTheNav')}
             value={showHistoryTab}

@@ -17,10 +17,10 @@ const NovelBadgesModal: React.FC<NovelBadgesModalProps> = ({
   theme,
 }) => {
   const {
-    showDownloadBadges = true,
     showNumberOfNovels = false,
     showUnreadBadges = true,
     showStatusBadges = false,
+    showContinueReadingButton = false,
     setLibrarySettings,
   } = useLibrarySettings();
   return (
@@ -29,19 +29,9 @@ const NovelBadgesModal: React.FC<NovelBadgesModalProps> = ({
       onDismiss={hideNovelBadgesModal}
     >
       <Dialog.Title>
-        {getString('libraryScreen.bottomSheet.display.badges')}
+        {getString('libraryScreen.bottomSheet.display.overlays')}
       </Dialog.Title>
       <Dialog.List>
-        <Checkbox
-          label={getString('libraryScreen.bottomSheet.display.downloadBadges')}
-          status={showDownloadBadges}
-          onPress={() =>
-            setLibrarySettings({
-              showDownloadBadges: !showDownloadBadges,
-            })
-          }
-          theme={theme}
-        />
         <Checkbox
           label={getString('libraryScreen.bottomSheet.display.unreadBadges')}
           status={showUnreadBadges}
@@ -68,6 +58,18 @@ const NovelBadgesModal: React.FC<NovelBadgesModalProps> = ({
           onPress={() =>
             setLibrarySettings({
               showNumberOfNovels: !showNumberOfNovels,
+            })
+          }
+          theme={theme}
+        />
+        <Checkbox
+          label={getString(
+            'libraryScreen.bottomSheet.display.continueReadingButton',
+          )}
+          status={showContinueReadingButton}
+          onPress={() =>
+            setLibrarySettings({
+              showContinueReadingButton: !showContinueReadingButton,
             })
           }
           theme={theme}

@@ -22,6 +22,7 @@
     "dataManagement": "Data Management",
     "deleteReadChapters": "Delete read chapters",
     "deleteReadChaptersDialogTitle": "All chapters marked as read will be deleted.",
+    "diagnostics": "Diagnostics",
     "disabled": "Disabled",
     "dnsOverHttps": "DNS over HTTPS (DoH)",
     "dnsOverHttpsDescription": "Uses the selected resolver for app requests and downloads. WebView traffic is not affected.",
@@ -37,7 +38,10 @@
     "recreateDBIndexesToast": "Recreated DB indexes",
     "recreateDBIndexesDialogTitle": "All DB indexes will be recreated.\nThis may take a while.",
     "recreateDBIndexesDesc": "Recreates DB indexes. This may improve performance on slower devices.",
-    "restartRequired": "Restart LNReader to apply this change."
+    "restartRequired": "Restart LNReader to apply this change.",
+    "shareCrashLogs": "Share crash logs",
+    "shareCrashLogsDescription": "Create a diagnostic report with app, device, plugin, exception, and app-accessible logcat information.",
+    "shareCrashLogsFailed": "Failed to create crash logs."
   },
   "appearance": "Appearance",
   "appearanceScreen": {
@@ -274,6 +278,7 @@
     "cantDeleteDefault": "You can't delete the default category",
     "default": "Default",
     "defaultCategory": "Default category",
+    "alwaysAsk": "Always ask",
     "deleteModal": {
       "desc": "Do you wish to delete category",
       "header": "Delete category"
@@ -383,10 +388,19 @@
     "pluginNotFound": "Plugin not found!",
     "removeDownloadsWarning": "Are you sure? All downloaded chapters will be deleted."
   },
+  "taskQueue": {
+    "cancelTaskAction": "Cancel task",
+    "cancelTaskTitle": "Cancel task?",
+    "cancelTaskConfirmation": "Are you sure you want to cancel %{task}?",
+    "keepTaskAction": "Keep task"
+  },
   "errorBoundary": {
     "title": "An Unexpected Error Occurred",
-    "description": "The application ran into an unexpected error. Please copy the stack trace below and share it on our Discord support channel.",
+    "description": "The application ran into an unexpected error. Please share the crash logs in our Discord support channel.",
     "copyStackTrace": "Copy stack trace",
+    "shareCrashLogs": "Share crash logs",
+    "shareCrashLogsFailed": "Could not share crash logs. The stack trace was copied instead.",
+    "shareCrashLogsFailedWithoutCopy": "Could not share crash logs or copy the stack trace.",
     "restart": "Restart the application"
   },
   "generalSettings": "General",
@@ -429,6 +443,7 @@
     "jumpToLastReadChapter": "Jump to last read chapter in list",
     "novel": "Novel",
     "novelBadges": "Novel Badges",
+    "showContinueReadingButton": "Show continue reading button",
     "novelSort": "Novel Sort",
     "refreshMetadata": "Automatically refresh metadata",
     "refreshMetadataDescription": "Check for new cover and details when updating library",
@@ -440,7 +455,8 @@
     "updateLibrary": "Update library on launch",
     "updateLibraryDesc": "Not recommended for low-end devices",
     "updateTime": "Show last update time",
-    "useFAB": "Use FAB in Library",
+    "useFAB": "Show library resume button",
+    "useFABDescription": "Show a floating button that opens the most recently read chapter.",
     "timeTracking": "Time Tracking",
     "enableTimeTracking": "Enable time tracking",
     "enableTimeTrackingDesc": "Tracks time spent reading and displays it in the statistics screen",
@@ -472,12 +488,14 @@
         "badges": "Badges",
         "comfortable": "Comfortable grid",
         "compact": "Compact grid",
+        "continueReadingButton": "Continue reading button",
         "displayMode": "Display mode",
         "download": "Download",
         "downloadBadges": "Download badges",
         "list": "List",
         "noTitle": "Cover only grid",
         "numberOfItems": "Number of Items",
+        "overlays": "Overlays",
         "showNoOfItems": "Show number of items",
         "unread": "Unread",
         "unreadBadges": "Unread badges",
@@ -724,9 +742,14 @@
     "genreDistribution": "Genre distribution",
     "novels": "novels",
     "readChapters": "Read chapters",
+    "readLabel": "Read",
+    "downloadedLabel": "Downloaded",
     "sources": "Sources",
     "statusDistribution": "Status distribution",
     "title": "Statistics",
+    "readingTime": "Reading time",
+    "chaptersInLibrary": "chapters in library",
+    "customizeGenres": "Customize",
     "titlesInLibrary": "Titles in library",
     "totalChapters": "Total chapters",
     "unreadChapters": "Unread chapters",
@@ -801,6 +824,19 @@
     }
   },
   "customCodeSettings": {
+    "description": "Rules and snippets run on every chapter you read, in the order shown.",
+    "textRules": "Text Rules",
+    "ruleCount": {
+      "one": "%{count} rule",
+      "other": "%{count} rules"
+    },
+    "activeSnippetCount": {
+      "one": "%{count} of %{total} active",
+      "other": "%{count} of %{total} active"
+    },
+    "addReplaceRule": "Add replacement",
+    "addRemoveRule": "Add removal",
+    "renameHint": "Long press to rename",
     "textManipulation": "Text Manipulation",
     "codeSnippets": "Code Snippets",
     "cssSnippets": "CSS Snippets",
@@ -815,11 +851,16 @@
     "editReplace": "Edit Replace/Remove",
     "enterAMatch": "Enter a match pattern",
     "enterAReplace": "Enter a replace value",
+    "regexHint": "Plain text affects all matches. For regex, use /pattern/flags and add g to affect all matches.",
     "itemAlreadyExists": "Item already exists",
     "replace": "Replace",
     "removeText": "Remove Text",
     "snippetSaved": "Snippet saved",
     "snippetUpdated": "Snippet updated",
+    "beautifyCode": "Beautify code",
+    "beautifyFailed": "Couldn't format the code. Check its syntax and try again.",
+    "syntaxHighlighting": "Syntax highlighting",
+    "importCode": "Import code",
     "imported": "Imported"
   },
   "genreStats": {
@@ -839,12 +880,21 @@
       "one": "%{count} subgenre",
       "other": "%{count} subgenres"
     },
-    "novelsIn": "Novels in %{genre}",
+    "novels": "Novels",
     "noNovels": "No novels found for this category",
     "seeAllNovels": "See all",
     "editTaxonomy": "Edit genre taxonomy",
     "taxonomyTitle": "Genre taxonomy",
-    "parentCategories": "Parent categories",
+    "parentCategories": "Genre groups",
+    "genreGroups": "Genre groups",
+    "taxonomyDescription": "Statistics group each novel's genres under these groups. Genres outside a group are counted individually.",
+    "newGroup": "New group",
+    "editGenreGroup": "Edit genre group",
+    "genresInGroup": "Genres in this group",
+    "noGenresInGroup": "No genres yet",
+    "foundInLibrary": "Found in your library",
+    "ungroupedGenresDescription": "Genres your sources use that aren't in any group yet",
+    "deleteGroupConfirm": "Delete this genre group? Its genres will be counted individually.",
     "normalization": "Normalization rules",
     "addCategory": "Add category",
     "addChild": "Add subgenre",
@@ -853,11 +903,11 @@
     "deleteCategoryConfirm": "Delete this category and its subgenres?",
     "deleteChildConfirm": "Delete this subgenre?",
     "deleteNormalizationConfirm": "Delete this normalization rule?",
-    "parentNamePlaceholder": "Category name",
-    "childNamePlaceholder": "Add Subgenre",
+    "parentNamePlaceholder": "Group name",
+    "childNamePlaceholder": "Add genre",
     "normalizationKeyPlaceholder": "e.g. sci-fi",
     "normalizationValuePlaceholder": "e.g. Sci-Fi",
-    "noCategories": "No parent categories configured",
+    "noCategories": "No genre groups yet",
     "noNormalization": "No normalization rules configured"
   }
 }

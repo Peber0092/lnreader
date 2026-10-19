@@ -24,11 +24,10 @@ import {
   type NovelWithGenres,
 } from '@database/queries/StatsQueries';
 import { OverviewTab } from './OverviewTab';
-import { PluginsTab } from './PluginsTab';
 import { TimeTab } from './TimeTab';
 
 type StatsRoute = {
-  key: 'overview' | 'plugins' | 'time';
+  key: 'overview' | 'time';
   title: string;
 };
 
@@ -121,8 +120,7 @@ const StatsScreen = () => {
   const routes: StatsRoute[] = useMemo(
     () => [
       { key: 'overview', title: getString('generalSettings') },
-      { key: 'plugins', title: getString('statsScreen.plugins') },
-      { key: 'time', title: getString('statsScreen.totalTimeSpent') },
+      { key: 'time', title: getString('statsScreen.readingTime') },
     ],
     [],
   );
@@ -137,7 +135,10 @@ const StatsScreen = () => {
     (props: any) => (
       <TopTabBar
         {...props}
-        indicatorStyle={styles.tabBarIndicator}
+        indicatorStyle={[
+          styles.tabBarIndicator,
+          { backgroundColor: theme.primary },
+        ]}
         style={[
           styles.tabBar,
           {
@@ -146,7 +147,7 @@ const StatsScreen = () => {
           },
         ]}
         tabStyle={styles.tabStyle}
-        gap={8}
+        gap={0}
         inactiveColor={theme.secondary}
         activeColor={theme.primary}
         android_ripple={{ color: theme.rippleColor }}
@@ -172,14 +173,6 @@ const StatsScreen = () => {
               theme={theme}
               onNovelPress={handleNovelPress}
               navigation={navigation}
-            />
-          );
-        case 'plugins':
-          return (
-            <PluginsTab
-              allNovels={allNovels}
-              theme={theme}
-              onNovelPress={handleNovelPress}
             />
           );
         case 'time':
@@ -237,7 +230,6 @@ const styles = StyleSheet.create({
     elevation: 0,
   },
   tabBarIndicator: {
-    backgroundColor: '#000',
     height: 3,
   },
   tabStyle: {

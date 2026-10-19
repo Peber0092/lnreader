@@ -8,7 +8,6 @@ import { getString } from '@i18n/translations';
 import {
   type NativeScrollEvent,
   type NativeSyntheticEvent,
-  RefreshControl,
   useWindowDimensions,
   View,
 } from 'react-native';
@@ -19,7 +18,6 @@ import {
   useSharedValue,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import TrackSheet from './Tracker/TrackSheet';
 import NovelBottomSheet from './NovelBottomSheet';
 import PageNavigationBottomSheet from './PageNavigationBottomSheet';
 import * as Haptics from 'expo-haptics';
@@ -63,8 +61,6 @@ const NovelScreenList = ({
   selected,
   setSelected,
   deleteDownloadSnackbar,
-  onRefresh,
-  updating,
 }: NovelScreenListProps) => {
   const chapters = useNovelValue('chapters');
   const fetching = useNovelValue('fetching');
@@ -102,7 +98,7 @@ const NovelScreenList = ({
   const { filter, showChapterTitles = false } = novelSettings;
 
   const theme = useTheme();
-  const { top: topInset, bottom: bottomInset } = useSafeAreaInsets();
+  const { bottom: bottomInset } = useSafeAreaInsets();
 
   const {
     downloadQueue,
@@ -255,19 +251,6 @@ const NovelScreenList = ({
       }
     },
     [novel, downloadChapter],
-  );
-
-  const refreshControlElement = useMemo(
-    () => (
-      <RefreshControl
-        progressViewOffset={topInset + 32}
-        onRefresh={onRefresh}
-        refreshing={updating}
-        colors={[theme.primary]}
-        progressBackgroundColor={theme.onPrimary}
-      />
-    ),
-    [onRefresh, updating, topInset, theme.primary, theme.onPrimary],
   );
 
   const scrollToTop = useCallback(() => {
@@ -431,7 +414,6 @@ const NovelScreenList = ({
         keyExtractor={chapterKeyExtractor}
         extraData={listExtraData}
         contentContainerStyle={contentContainerStyle}
-        refreshControl={refreshControlElement}
         onEndReached={getNextChapterBatch}
         onEndReachedThreshold={6}
         onScroll={scrollHandler}
@@ -444,7 +426,6 @@ const NovelScreenList = ({
             bottomSheetRef={novelBottomSheetRef}
             theme={theme}
           />
-          <TrackSheet bottomSheetRef={trackerSheetRef} novel={novel} />
           {(novel.totalPages ?? 0) > 1 || pages.length > 1 ? (
             <PageNavigationBottomSheet
               bottomSheetRef={pageNavigationSheetRef}

@@ -8,7 +8,6 @@ import { SettingsStackParamList } from '@navigators/types';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import SettingSwitch from '../components/SettingSwitch';
-import DownloadCooldownModal from './modals/DownloadCooldownModal';
 import InactivityTimeoutModal from './modals/InactivityTimeoutModal';
 
 type GeneralSettingsProps = NativeStackScreenProps<
@@ -19,7 +18,6 @@ type GeneralSettingsProps = NativeStackScreenProps<
 const GeneralSettings = ({ navigation }: GeneralSettingsProps) => {
   const theme = useTheme();
   const {
-    chapterDownloadCooldownMs,
     disableHapticFeedback,
     disableLoadingAnimations,
     inactivityTimeoutMs,
@@ -27,7 +25,6 @@ const GeneralSettings = ({ navigation }: GeneralSettingsProps) => {
     timeTrackingEnabled,
   } = useAppSettings();
 
-  const downloadCooldownModal = useBoolean();
   const inactivityTimeoutModal = useBoolean();
 
   return (
@@ -68,14 +65,6 @@ const GeneralSettings = ({ navigation }: GeneralSettingsProps) => {
           <List.SubHeader theme={theme}>
             {getString('generalSettings')}
           </List.SubHeader>
-          <List.Item
-            title={getString('generalSettingsScreen.chapterDownloadCooldown')}
-            description={`${(
-              (chapterDownloadCooldownMs ?? 1000) / 1000
-            ).toString()}s`}
-            onPress={downloadCooldownModal.setTrue}
-            theme={theme}
-          />
           <SettingSwitch
             label={getString('generalSettingsScreen.disableHapticFeedback')}
             description={getString(
@@ -102,11 +91,6 @@ const GeneralSettings = ({ navigation }: GeneralSettingsProps) => {
           />
         </List.Section>
       </ScrollView>
-      <DownloadCooldownModal
-        visible={downloadCooldownModal.value}
-        hideModal={downloadCooldownModal.setFalse}
-        theme={theme}
-      />
       <InactivityTimeoutModal
         inactivityTimeoutMs={inactivityTimeoutMs}
         modalVisible={inactivityTimeoutModal.value}

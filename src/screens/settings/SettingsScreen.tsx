@@ -58,29 +58,9 @@ const SettingsScreen = ({ navigation }: SettingsScreenProps) => {
           theme={theme}
         />
         <List.Item
-          title="Repositories"
-          icon="github"
-          onPress={() =>
-            navigation.navigate('SettingsStack', {
-              screen: 'RespositorySettings',
-            })
-          }
-          theme={theme}
-        />
-        <List.Item
           title="Custom Code"
           icon="code-braces"
           onPress={() => navigation.navigate('CustomCode')}
-          theme={theme}
-        />
-        <List.Item
-          title={getString('tracking')}
-          icon="sync"
-          onPress={() =>
-            navigation.navigate('SettingsStack', {
-              screen: 'TrackerSettings',
-            })
-          }
           theme={theme}
         />
         <List.Item

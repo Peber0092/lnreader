@@ -17,6 +17,7 @@ interface ListViewProps {
   onPress: () => void;
   isSelected?: boolean;
   onLongPress?: () => void;
+  continueReadingButton?: React.ReactNode;
 }
 
 const ListView = ({
@@ -29,6 +30,7 @@ const ListView = ({
   onPress,
   isSelected,
   onLongPress,
+  continueReadingButton,
 }: ListViewProps) => {
   const fadedImage = { opacity: inLibraryBadge ? 0.5 : 1 };
   return (
@@ -61,6 +63,7 @@ const ListView = ({
         {unreadBadge}
         {inLibraryBadge}
       </View>
+      {continueReadingButton}
     </Pressable>
   );
 };

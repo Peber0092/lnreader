@@ -7,8 +7,7 @@ import {
   setNavigationBarTransparent,
   setStatusBarColor,
 } from '@theme/utils/setBarColor';
-import { useAppSettings, usePluginActions, useTheme } from '@hooks/persisted';
-import { AppUpdateChecker } from '@components';
+import { useTheme } from '@hooks/persisted';
 
 /**
  * Navigators
@@ -34,12 +33,8 @@ import WebviewScreen from '@screens/WebviewScreen/WebviewScreen';
 import { RootStackParamList } from './types';
 import { useMMKVBoolean } from 'react-native-mmkv';
 import OnboardingScreen from '@screens/onboarding/OnboardingScreen';
-import { backgroundTasks } from '@services/backgroundTasks';
 import ReaderStack from './ReaderStack';
-import ShareIntentHandler, {
-  flushPendingShare,
-  navigationRef,
-} from './ShareIntentHandler';
+import { navigationRef } from './ShareIntentHandler';
 import { LibraryContextProvider } from '@components/Context/LibraryContext';
 import { UpdateContextProvider } from '@components/Context/UpdateContext';
 import { useReactNavigationDevTools } from '@rozenite/react-navigation-plugin';
@@ -47,8 +42,6 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 
 const MainNavigator = () => {
   const theme = useTheme();
-  const { updateLibraryOnLaunch } = useAppSettings();
-  const { refreshPlugins } = usePluginActions();
   const [isOnboarded] = useMMKVBoolean('IS_ONBOARDED');
 
   useEffect(() => {
@@ -62,16 +55,6 @@ const MainNavigator = () => {
     };
   }, [theme]);
 
-  useEffect(() => {
-    if (updateLibraryOnLaunch) {
-      backgroundTasks.enqueue({ name: 'UPDATE_LIBRARY' });
-    }
-    if (isOnboarded) {
-      // hack this helps app has enough time to initialize database;
-      refreshPlugins();
-    }
-  }, [isOnboarded, refreshPlugins, updateLibraryOnLaunch]);
-
   // Enable React Navigation DevTools in development
   useReactNavigationDevTools({ ref: navigationRef });
 
@@ -81,7 +64,6 @@ const MainNavigator = () => {
   return (
     <NavigationContainer<RootStackParamList>
       ref={navigationRef}
-      onReady={flushPendingShare}
       theme={{
         colors: {
           ...DefaultTheme.colors,
@@ -94,27 +76,9 @@ const MainNavigator = () => {
         dark: theme.isDark,
         fonts: DefaultTheme.fonts,
       }}
-      linking={{
-        prefixes: ['lnreader://'],
-        config: {
-          screens: {
-            MoreStack: {
-              screens: {
-                SettingsStack: {
-                  screens: {
-                    RespositorySettings: '/repo/add',
-                  },
-                },
-              },
-            },
-          },
-        },
-      }}
     >
-      <ShareIntentHandler />
       <LibraryContextProvider>
         <UpdateContextProvider>
-          <AppUpdateChecker />
           <Stack.Navigator
             screenOptions={{
               animation: 'none',

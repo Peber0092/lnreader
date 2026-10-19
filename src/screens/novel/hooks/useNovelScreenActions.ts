@@ -5,7 +5,6 @@ import isNumber from 'lodash-es/isNumber';
 import {
   getAllUndownloadedAndUnreadChapters,
   getAllUndownloadedChapters,
-  getChaptersByIds,
 } from '@database/queries/ChapterQueries';
 import { ChapterInfo, NovelInfo } from '@database/types';
 import { useDownload } from '@hooks/persisted';
@@ -93,48 +92,6 @@ export const useNovelScreenActions = ({
 
     const hasUnloadedSelection = selectedIds.length > selectedChapters.length;
 
-    if (
-      !novel?.isLocal &&
-      (hasUnloadedSelection ||
-        selectedChapters.some(chapter => !chapter.isDownloaded))
-    ) {
-      actions.push({
-        icon: 'download-outline',
-        onPress: finish(() => {
-          if (novel) {
-            void getChaptersByIds(selectedIds).then(chaptersToDownload => {
-              const availableChapters = chaptersToDownload.filter(
-                chapter => !chapter.isDownloaded,
-              );
-              if (availableChapters.length > 0) {
-                downloadChapters(novel, availableChapters);
-              }
-            });
-          }
-        }),
-      });
-    }
-
-    if (
-      !novel?.isLocal &&
-      (hasUnloadedSelection ||
-        selectedChapters.some(chapter => chapter.isDownloaded))
-    ) {
-      actions.push({
-        icon: 'trash-can-outline',
-        onPress: finish(() => {
-          void getChaptersByIds(selectedIds).then(selectedChapterRows => {
-            const downloadedChapterIds = selectedChapterRows
-              .filter(chapter => chapter.isDownloaded)
-              .map(chapter => chapter.id);
-            if (downloadedChapterIds.length > 0) {
-              deleteChapters(downloadedChapterIds);
-            }
-          });
-        }),
-      });
-    }
-
     actions.push({
       icon: 'bookmark-outline',
       onPress: finish(() => bookmarkChapters(selectedIds)),
@@ -180,13 +137,10 @@ export const useNovelScreenActions = ({
   }, [
     bookmarkChapters,
     clearSelection,
-    deleteChapters,
-    downloadChapters,
     markChaptersRead,
     markChaptersUnreadAndResetProgress,
     markPreviousChaptersUnread,
     markPreviouschaptersRead,
-    novel,
     selectedIds,
     selectedChapters,
   ]);

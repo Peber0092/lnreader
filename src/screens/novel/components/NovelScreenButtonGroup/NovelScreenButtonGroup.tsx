@@ -3,13 +3,10 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import MaterialCommunityIcons from '@react-native-vector-icons/material-design-icons';
 
 import { NovelInfo } from '@database/types';
-import { useNavigation } from '@react-navigation/native';
 import { useBoolean } from '@hooks';
 import { ThemeColors } from '@theme/types';
 import { getString } from '@i18n/translations';
 import SetCategoryModal from '../SetCategoriesModal';
-import { NovelScreenProps } from '@navigators/types';
-import { useTrackedNovel, useTracker } from '@hooks/persisted';
 import Animated, { ZoomIn, ZoomOut } from 'react-native-reanimated';
 import { MaterialDesignIconName } from '@type/icon';
 import { useNovelAction } from '@screens/novel/NovelContext';
@@ -66,33 +63,15 @@ interface NovelScreenButtonGroupProps {
 
 const NovelScreenButtonGroup: React.FC<NovelScreenButtonGroupProps> = ({
   novel,
-  handleTrackerSheet,
   handleFollowNovel,
   theme,
 }) => {
-  const { inLibrary, isLocal } = novel;
-  const { navigate } = useNavigation<NovelScreenProps['navigation']>();
-  const { tracker } = useTracker();
-  const { trackedNovel } = useTrackedNovel(novel.id);
+  const { inLibrary } = novel;
   const setNovel = useNovelAction('setNovel');
   const { refetchLibrary } = useLibraryContext();
 
   const followButtonColor = inLibrary ? theme.primary : theme.outline;
-  const trackerButtonColor = trackedNovel ? theme.primary : theme.outline;
 
-  const handleOpenWebView = async () => {
-    navigate('WebviewScreen', {
-      name: novel.name,
-      url: novel.path,
-      pluginId: novel.pluginId,
-      isNovel: true,
-    });
-  };
-  const handleMigrateNovel = () =>
-    novel.id !== 'NO_ID' &&
-    navigate('MigrateNovel', {
-      novel: novel,
-    });
   const handleCategoriesUpdated = async () => {
     if (!novel.inLibrary && novel.id !== 'NO_ID') {
       setNovel({ ...novel, inLibrary: true });
@@ -119,36 +98,6 @@ const NovelScreenButtonGroup: React.FC<NovelScreenButtonGroupProps> = ({
           )}
           color={followButtonColor}
         />
-
-        {tracker ? (
-          <Button
-            theme={theme}
-            onPress={handleTrackerSheet}
-            icon={trackedNovel ? 'check' : 'sync'}
-            label={
-              trackedNovel
-                ? getString('novelScreen.tracked')
-                : getString('novelScreen.tracking')
-            }
-            color={trackerButtonColor}
-          />
-        ) : null}
-        {inLibrary && !isLocal ? (
-          <Button
-            theme={theme}
-            onPress={handleMigrateNovel}
-            icon="swap-vertical-variant"
-            label={getString('novelScreen.migrate')}
-          />
-        ) : null}
-        {!isLocal ? (
-          <Button
-            theme={theme}
-            onPress={handleOpenWebView}
-            icon="earth"
-            label={'WebView'}
-          />
-        ) : null}
       </View>
       {novel.id !== 'NO_ID' && setCategoryModalVisible ? (
         <SetCategoryModal

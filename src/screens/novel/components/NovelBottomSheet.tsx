@@ -83,14 +83,6 @@ const ChaptersSettingsSheet = ({
       <BottomSheetScrollView style={styles.flex}>
         <Checkbox
           theme={theme}
-          label={getString('novelScreen.bottomSheet.filters.downloaded')}
-          status={getChapterFilterState('downloaded')}
-          onPress={() => {
-            cycleChapterFilter('downloaded');
-          }}
-        />
-        <Checkbox
-          theme={theme}
           label={getString('novelScreen.bottomSheet.filters.unread')}
           status={unreadStatus}
           onPress={() => {

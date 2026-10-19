@@ -14,7 +14,7 @@ import {
   View,
   ViewStyle,
 } from 'react-native';
-import { SceneMap, TabDescriptor, TabView } from 'react-native-tab-view';
+import { TabDescriptor, TabView } from 'react-native-tab-view';
 import MaterialCommunityIcons from '@react-native-vector-icons/material-design-icons';
 
 import { useLibrarySettings, useTheme } from '@hooks/persisted';
@@ -56,10 +56,6 @@ interface FilterOption {
 }
 
 const READING_STATUS_FILTERS: FilterOption[] = [
-  {
-    key: 'downloaded',
-    label: getString('libraryScreen.bottomSheet.filters.downloaded'),
-  },
   {
     key: 'unread',
     label: getString('libraryScreen.bottomSheet.filters.unread'),
@@ -103,7 +99,6 @@ const FirstRoute = () => {
     includedFilters = [],
     excludedFilters = [],
     setLibrarySettings,
-    downloadedOnlyMode = false,
   } = useLibrarySettings();
 
   const handleFilterPress = useCallback(
@@ -181,7 +176,6 @@ const FirstRoute = () => {
             state={getFilterState(item.key)}
             theme={theme}
             onPress={() => handleFilterPress(item.key)}
-            disabled={item.key === 'downloaded' && downloadedOnlyMode}
           />
         ))}
 
@@ -540,10 +534,10 @@ const SecondRoute = () => {
 const ThirdRoute = () => {
   const theme = useTheme();
   const {
-    showDownloadBadges = true,
     showNumberOfNovels = false,
     showUnreadBadges = true,
     showStatusBadges = false,
+    showContinueReadingButton = false,
     displayMode = DisplayModes.Comfortable,
     setLibrarySettings,
   } = useLibrarySettings();
@@ -551,18 +545,8 @@ const ThirdRoute = () => {
   return (
     <View style={styles.flex}>
       <Text style={[styles.sectionHeader, { color: theme.onSurfaceVariant }]}>
-        {getString('libraryScreen.bottomSheet.display.badges')}
+        {getString('libraryScreen.bottomSheet.display.overlays')}
       </Text>
-      <Checkbox
-        label={getString('libraryScreen.bottomSheet.display.downloadBadges')}
-        status={showDownloadBadges}
-        onPress={() =>
-          setLibrarySettings({
-            showDownloadBadges: !showDownloadBadges,
-          })
-        }
-        theme={theme}
-      />
       <Checkbox
         label={getString('libraryScreen.bottomSheet.display.unreadBadges')}
         status={showUnreadBadges}
@@ -589,6 +573,18 @@ const ThirdRoute = () => {
         onPress={() =>
           setLibrarySettings({
             showNumberOfNovels: !showNumberOfNovels,
+          })
+        }
+        theme={theme}
+      />
+      <Checkbox
+        label={getString(
+          'libraryScreen.bottomSheet.display.continueReadingButton',
+        )}
+        status={showContinueReadingButton}
+        onPress={() =>
+          setLibrarySettings({
+            showContinueReadingButton: !showContinueReadingButton,
           })
         }
         theme={theme}

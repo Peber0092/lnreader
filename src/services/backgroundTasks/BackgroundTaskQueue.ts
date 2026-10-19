@@ -50,10 +50,20 @@ export class BackgroundTaskQueue {
   }
 
   async refresh() {
-    const records = await NativeBackgroundTasks.getTasks();
-    const queue = records
-      .filter(record => ACTIVE_BACKGROUND_TASK_STATES.has(record.state))
-      .map(fromNativeTaskRecord);
+    const summaries = await NativeBackgroundTasks.getTasks();
+    const queue: QueuedBackgroundTask[] = [];
+
+    for (const summary of summaries) {
+      const record = await NativeBackgroundTasks.getTask(summary.id);
+      if (
+        record &&
+        ACTIVE_BACKGROUND_TASK_STATES.has(record.state) &&
+        record.payload
+      ) {
+        queue.push(fromNativeTaskRecord(record));
+      }
+    }
+
     this.store(queue);
     return queue;
   }
@@ -94,15 +104,30 @@ export class BackgroundTaskQueue {
 
   async cancelByType(name: BackgroundTask['name']) {
     const tasks = this.getSnapshot().filter(task => task.task.name === name);
-    tasks.forEach(task => this.interruptedTasks.set(task.id, 'cancel'));
-    await Promise.all(tasks.map(task => NativeBackgroundTasks.cancel(task.id)));
+    await Promise.all(tasks.map(task => this.cancel(task.id)));
     await this.refresh();
+  }
+
+  async cancel(taskId: string) {
+    const task = this.getSnapshot().find(item => item.id === taskId);
+    if (!task) return;
+
+    if (taskId.startsWith('pending-')) {
+      this.interruptedTasks.set(taskId, 'cancel');
+      this.store(this.getSnapshot().filter(item => item.id !== taskId));
+      return;
+    }
+
+    if (task.state === 'running') {
+      this.interruptedTasks.set(taskId, 'cancel');
+    }
+    await NativeBackgroundTasks.cancel(taskId);
+    this.store(this.getSnapshot().filter(item => item.id !== taskId));
   }
 
   async cancelAll() {
     const tasks = this.getSnapshot();
-    tasks.forEach(task => this.interruptedTasks.set(task.id, 'cancel'));
-    await Promise.all(tasks.map(task => NativeBackgroundTasks.cancel(task.id)));
+    await Promise.all(tasks.map(task => this.cancel(task.id)));
     this.store([]);
   }
 
@@ -187,6 +212,11 @@ export class BackgroundTaskQueue {
         allowsDuplicateTask(task),
         getBackgroundTaskQueueName(task),
       );
+      if (this.interruptedTasks.get(pending.id) === 'cancel') {
+        this.interruptedTasks.delete(pending.id);
+        await NativeBackgroundTasks.cancel(id);
+        return;
+      }
       const latest = this.getSnapshot().filter(item => item.id !== pending.id);
       if (!latest.some(item => item.id === id)) {
         latest.push({ ...pending, id });

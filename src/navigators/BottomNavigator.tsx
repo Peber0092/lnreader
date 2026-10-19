@@ -1,18 +1,12 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 
 import Library from '../screens/library/LibraryScreen';
-import Updates from '../screens/updates/UpdatesScreen';
 import History from '../screens/history/HistoryScreen';
-import Browse from '../screens/browse/BrowseScreen';
 import More from '../screens/more/MoreScreen';
 
 import { getString } from '@i18n/translations';
-import {
-  useAppSettings,
-  useFilteredInstalledPlugins,
-  useTheme,
-} from '@hooks/persisted';
+import { useAppSettings, useTheme } from '@hooks/persisted';
 import { BottomNavigatorParamList } from './types';
 import Icon from '@react-native-vector-icons/material-design-icons';
 import { MaterialDesignIconName } from '@type/icon';
@@ -23,17 +17,7 @@ const Tab = createBottomTabNavigator<BottomNavigatorParamList>();
 const BottomNavigator = () => {
   const theme = useTheme();
 
-  const {
-    showHistoryTab = true,
-    showUpdatesTab = true,
-    showLabelsInNav = false,
-  } = useAppSettings();
-
-  const filteredInstalledPlugins = useFilteredInstalledPlugins();
-  const pluginsWithUpdate = useMemo(
-    () => filteredInstalledPlugins.filter(p => p.hasUpdate).length,
-    [filteredInstalledPlugins],
-  );
+  const { showHistoryTab = true, showLabelsInNav = false } = useAppSettings();
 
   const renderIcon = useCallback(
     ({ color, route }: { route: { name: string }; color: string }) => {
@@ -42,14 +26,8 @@ const BottomNavigator = () => {
         case 'Library':
           iconName = 'bookmark-box-multiple';
           break;
-        case 'Updates':
-          iconName = 'alert-decagram-outline';
-          break;
         case 'History':
           iconName = 'history';
-          break;
-        case 'Browse':
-          iconName = 'compass-outline';
           break;
         case 'More':
           iconName = 'dots-horizontal';
@@ -95,15 +73,6 @@ const BottomNavigator = () => {
           title: getString('library'),
         }}
       />
-      {showUpdatesTab ? (
-        <Tab.Screen
-          name="Updates"
-          component={Updates}
-          options={{
-            title: getString('updates'),
-          }}
-        />
-      ) : null}
       {showHistoryTab ? (
         <Tab.Screen
           name="History"
@@ -113,17 +82,6 @@ const BottomNavigator = () => {
           }}
         />
       ) : null}
-      <Tab.Screen
-        name="Browse"
-        component={Browse}
-        options={{
-          title: getString('browse'),
-          freezeOnBlur: false,
-          tabBarBadge: pluginsWithUpdate
-            ? pluginsWithUpdate.toString()
-            : undefined,
-        }}
-      />
       <Tab.Screen
         name="More"
         component={More}

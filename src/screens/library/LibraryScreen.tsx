@@ -22,7 +22,6 @@ import {
 
 import {
   SearchbarV2,
-  Button,
   EmptyView,
   ErrorScreenV2,
   SafeAreaView,
@@ -47,9 +46,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import SourceScreenSkeletonLoading from '@screens/browse/loadingAnimation/SourceScreenSkeletonLoading';
 import { Row } from '@components/Common';
 import { LibraryScreenProps } from '@navigators/types';
-import { NovelInfo } from '@database/types';
+import { History, NovelInfo } from '@database/types';
 import * as DocumentPicker from 'expo-document-picker';
-import { backgroundTasks } from '@services/backgroundTasks';
 import useImport from '@hooks/persisted/useImport';
 import { ThemeColors } from '@theme/types';
 import { useLibraryContext } from '@components/Context/LibraryContext';
@@ -176,7 +174,7 @@ const LibraryScreen = ({ navigation, route }: LibraryScreenProps) => {
     error: libraryError,
     settings: {
       showNumberOfNovels,
-      downloadedOnlyMode,
+      showContinueReadingButton = false,
       incognitoMode,
       lastUsedCategoryId,
       setLibrarySettings,
@@ -200,6 +198,11 @@ const LibraryScreen = ({ navigation, route }: LibraryScreenProps) => {
   const { useLibraryFAB = false } = useAppSettings();
 
   const { isLoading: isHistoryLoading, history, error } = useHistory();
+  const historyByNovelId = useMemo(() => {
+    const chapters = new Map<number, History>();
+    history.forEach(chapter => chapters.set(chapter.novelId, chapter));
+    return chapters;
+  }, [history]);
 
   const layout = useWindowDimensions();
 
@@ -382,41 +385,28 @@ const LibraryScreen = ({ navigation, route }: LibraryScreenProps) => {
       );
 
       return (
-        <>
-          {searchText ? (
-            <Button
-              title={`${getString(
-                'common.searchFor',
-              )} "${searchText}" ${getString('common.globally')}`}
-              style={styles.globalSearchBtn}
-              onPress={() =>
-                navigation.navigate('GlobalSearchScreen', {
-                  searchText,
-                })
-              }
-            />
-          ) : null}
-          <LibraryView
-            categoryId={sceneRoute.id}
-            categoryName={sceneRoute.name}
-            novels={novels}
-            pickAndImport={pickAndImport}
-            navigation={navigation}
-          />
-        </>
+        <LibraryView
+          categoryId={sceneRoute.id}
+          categoryName={sceneRoute.name}
+          novels={novels}
+          pickAndImport={pickAndImport}
+          navigation={navigation}
+          historyByNovelId={historyByNovelId}
+          showContinueReadingButton={showContinueReadingButton}
+        />
       );
     },
     [
       library,
+      historyByNovelId,
+      showContinueReadingButton,
       navigation,
       pickAndImport,
-      searchText,
       searchLower,
       incFilters,
       excFilters,
       incGenres,
       excGenres,
-      styles.globalSearchBtn,
     ],
   );
 
@@ -482,22 +472,6 @@ const LibraryScreen = ({ navigation, route }: LibraryScreenProps) => {
   const menuButtons = useMemo(
     () => [
       {
-        title: getString('libraryScreen.extraMenu.updateLibrary'),
-        onPress: () => backgroundTasks.enqueue({ name: 'UPDATE_LIBRARY' }),
-      },
-      {
-        title: getString('libraryScreen.extraMenu.updateCategory'),
-        onPress: () =>
-          categories[index]?.id !== 2 &&
-          backgroundTasks.enqueue({
-            name: 'UPDATE_LIBRARY',
-            data: {
-              categoryId: categories[index].id,
-              categoryName: categories[index].name,
-            },
-          }),
-      },
-      {
         title: getString('libraryScreen.extraMenu.importEpub'),
         onPress: pickAndImport,
       },
@@ -506,7 +480,7 @@ const LibraryScreen = ({ navigation, route }: LibraryScreenProps) => {
         onPress: openRandom,
       },
     ],
-    [categories, index, pickAndImport, openRandom],
+    [pickAndImport, openRandom],
   );
 
   const handleFABPress = useCallback(() => {
@@ -598,13 +572,6 @@ const LibraryScreen = ({ navigation, route }: LibraryScreenProps) => {
         menuButtons={menuButtons}
         theme={theme}
       />
-      {downloadedOnlyMode ? (
-        <Banner
-          icon="cloud-off-outline"
-          label={getString('moreScreen.downloadOnly')}
-          theme={theme}
-        />
-      ) : null}
       {incognitoMode ? (
         <Banner
           icon="incognito"
@@ -648,9 +615,9 @@ const LibraryScreen = ({ navigation, route }: LibraryScreenProps) => {
             description={getString('libraryScreen.emptyCategory')}
             actions={[
               {
-                iconName: 'compass-outline',
-                title: getString('browse'),
-                onPress: () => navigation.navigate('Browse'),
+                iconName: 'book-arrow-up-outline',
+                title: getString('advancedSettingsScreen.importEpub'),
+                onPress: pickAndImport,
               },
             ]}
           />
@@ -719,9 +686,6 @@ function createStyles(theme: ThemeColors) {
     },
     fontWeight500: {
       fontWeight: 500,
-    },
-    globalSearchBtn: {
-      margin: 16,
     },
     tabBar: {
       borderBottomWidth: 1,

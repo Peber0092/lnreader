@@ -95,15 +95,9 @@ const Menu = React.memo(
 const NovelAppbar = ({
   novel,
   theme,
-  isLocal,
-  downloadChapters,
-  deleteChapters,
   showEditInfoModal,
-  downloadCustomChapterModal,
   setCustomNovelCover,
   goBack,
-  shareNovel,
-  refreshNovel,
   editCategories,
   showJumpToChapterModal,
   headerOpacity,
@@ -136,7 +130,6 @@ const NovelAppbar = ({
     };
   });
 
-  const [downloadMenu, showDownloadMenu] = useState(false);
   const [extraMenu, showExtraMenu] = useState(false);
 
   const appbarTheme = useMemo(() => ({ colors: theme }), [theme]);
@@ -152,48 +145,8 @@ const NovelAppbar = ({
     [theme],
   );
 
-  const downloadMenuItems = useMemo(() => {
-    return [
-      {
-        label: getString('novelScreen.download.next'),
-        onPress: () => downloadChapters(1),
-      },
-      {
-        label: getString('novelScreen.download.next5'),
-        onPress: () => downloadChapters(5),
-      },
-      {
-        label: getString('novelScreen.download.next10'),
-        onPress: () => downloadChapters(10),
-      },
-      {
-        label: getString('novelScreen.download.custom'),
-        onPress: () => downloadCustomChapterModal(),
-      },
-      {
-        label: getString('novelScreen.download.unread'),
-        onPress: () => downloadChapters('unread'),
-      },
-      {
-        label: getString('common.all'),
-        onPress: () => downloadChapters('all'),
-      },
-      {
-        label: getString('novelScreen.download.delete'),
-        onPress: () => deleteChapters(),
-      },
-    ];
-  }, [deleteChapters, downloadChapters, downloadCustomChapterModal]);
-
   const extraMenuItems = useMemo(() => {
     const items = [];
-
-    if (!isLocal) {
-      items.push({
-        label: getString('webview.refresh'),
-        onPress: refreshNovel,
-      });
-    }
 
     if (novel?.inLibrary) {
       items.push({
@@ -203,10 +156,6 @@ const NovelAppbar = ({
     }
 
     items.push(
-      {
-        label: getString('webview.share'),
-        onPress: shareNovel,
-      },
       {
         label: getString('novelScreen.edit.info'),
         onPress: () => showEditInfoModal(true),
@@ -220,16 +169,11 @@ const NovelAppbar = ({
     return items;
   }, [
     editCategories,
-    isLocal,
     novel?.inLibrary,
-    refreshNovel,
     setCustomNovelCover,
-    shareNovel,
     showEditInfoModal,
   ]);
 
-  const openDlMenu = useCallback(() => showDownloadMenu(true), []);
-  const closeDlMenu = useCallback(() => showDownloadMenu(false), []);
   const openExtraMenu = useCallback(() => showExtraMenu(true), []);
   const closeExtraMenu = useCallback(() => showExtraMenu(false), []);
 
@@ -262,22 +206,6 @@ const NovelAppbar = ({
               icon="book-search-outline"
               onPress={openJumpToChapter}
             />
-            {!isLocal ? (
-              <Menu
-                theme={theme}
-                visible={downloadMenu}
-                onDismiss={closeDlMenu}
-                anchor={
-                  <Appbar.Action
-                    theme={appbarTheme}
-                    icon="download-outline"
-                    onPress={openDlMenu}
-                    size={26}
-                  />
-                }
-                items={downloadMenuItems}
-              />
-            ) : null}
             <Menu
               visible={extraMenu}
               onDismiss={closeExtraMenu}
