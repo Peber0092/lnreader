@@ -19,6 +19,7 @@ import { epub } from '@modules/nitro-epub';
 import { showToast } from '@utils/showToast';
 import { createImportProgressReporter } from './importProgress';
 import { registerGenresToTaxonomy } from '@hooks/persisted/useGenreTaxonomy';
+import { NovelStatus } from '@plugins/types';
 
 const decodePath = (path: string) => {
   try {
@@ -38,6 +39,7 @@ const insertLocalNovel = async (
   genres?: string,
   comment?: string,
   altNames?: string,
+  status?: string,
 ) => {
   const { insertId } = await dbManager.write(async tx => {
     return tx
@@ -65,6 +67,7 @@ const insertLocalNovel = async (
       artist: artist,
       summary: summary,
       genres: genres,
+      status: status || NovelStatus.Unknown,
       comment: comment,
       altNames: altNames,
       path: NOVEL_STORAGE + '/local/' + insertId,
@@ -174,6 +177,74 @@ const extractAltNamesFromOpf = async (
   return undefined;
 };
 
+const normalizeNovelStatus = (rawStatus?: string | null): string => {
+  if (!rawStatus) return NovelStatus.Unknown;
+  const s = rawStatus.trim().toLowerCase();
+  if (
+    s === 'complete' ||
+    s === 'completed' ||
+    s.includes('จบ') ||
+    s.includes('complete')
+  ) {
+    return NovelStatus.Completed;
+  }
+  if (
+    s === 'ongoing' ||
+    s.includes('ดำเนิน') ||
+    s.includes('ongoing')
+  ) {
+    return NovelStatus.Ongoing;
+  }
+  if (
+    s === 'hiatus' ||
+    s === 'on hiatus' ||
+    s.includes('พัก') ||
+    s.includes('hiatus')
+  ) {
+    return NovelStatus.OnHiatus;
+  }
+  if (s === 'cancelled' || s === 'canceled') {
+    return NovelStatus.Cancelled;
+  }
+  return NovelStatus.Unknown;
+};
+
+const extractStatusFromOpf = async (
+  opfPath: string | null,
+): Promise<string | undefined> => {
+  if (!opfPath) return undefined;
+  try {
+    const xml = await NativeFile.readFile(opfPath);
+    // 1. <meta name="status">value</meta>
+    const matchTag = xml.match(
+      /<meta[^>]*name=["']status["'][^>]*>([\s\S]*?)<\/meta>/i,
+    );
+    if (matchTag && matchTag[1].trim()) return matchTag[1].trim();
+
+    // 2. <meta property="status">value</meta>
+    const matchProp = xml.match(
+      /<meta[^>]*property=["']status["'][^>]*>([\s\S]*?)<\/meta>/i,
+    );
+    if (matchProp && matchProp[1].trim()) return matchProp[1].trim();
+
+    // 3. <meta name="status" content="value" />
+    const matchContent = xml.match(
+      /<meta[^>]*name=["']status["'][^>]*content=["']([^"']*)["']/i,
+    );
+    if (matchContent && matchContent[1].trim()) return matchContent[1].trim();
+
+    // 4. <meta property="status" content="value" />
+    const matchPropContent = xml.match(
+      /<meta[^>]*property=["']status["'][^>]*content=["']([^"']*)["']/i,
+    );
+    if (matchPropContent && matchPropContent[1].trim()) return matchPropContent[1].trim();
+  } catch (e) {
+    console.warn('Failed to extract status from OPF:', e);
+  }
+  return undefined;
+};
+
+
 export const importEpub = async (
   { uri, filename }: EpubImportFile,
   setMeta: TaskProgressUpdater,
@@ -198,11 +269,39 @@ export const importEpub = async (
     const opfPath = await findOpfPath(epubDirPath);
     const comment = await extractCommentFromOpf(opfPath);
     const altNames = await extractAltNamesFromOpf(opfPath);
+    const rawStatus = await extractStatusFromOpf(opfPath);
 
     const novel = await epub.parseNovelAndChapters(epubDirPath);
     if (!novel.name) {
       novel.name = filename.replace('.epub', '') || 'Untitled';
     }
+
+    // Resolve novel status (OPF metadata or fallback to Status: tag in genres)
+    let parsedStatus = rawStatus ? normalizeNovelStatus(rawStatus) : undefined;
+    let cleanGenres = novel.genres || '';
+
+    if (cleanGenres) {
+      const genreList = cleanGenres
+        .split(',')
+        .map(g => g.trim())
+        .filter(Boolean);
+
+      const statusTag = genreList.find(g => /^status\s*:/i.test(g));
+      if (statusTag && (!parsedStatus || parsedStatus === NovelStatus.Unknown)) {
+        const val = statusTag.replace(/^status\s*:\s*/i, '');
+        parsedStatus = normalizeNovelStatus(val);
+      }
+
+      // Filter out any "Status: ..." tag so it doesn't pollute the genre chips
+      cleanGenres = genreList
+        .filter(g => !/^status\s*:/i.test(g))
+        .join(', ');
+    }
+
+    if (!parsedStatus) {
+      parsedStatus = NovelStatus.Unknown;
+    }
+
     const novelId = await insertLocalNovel(
       novel.name,
       epubDirPath + novel.name, // temporary
@@ -210,18 +309,39 @@ export const importEpub = async (
       novel.author || '',
       novel.artist || '',
       novel.summary || '',
-      novel.genres || '',
+      cleanGenres,
       comment,
       altNames,
+      parsedStatus,
     );
     const novelDir = `${NOVEL_STORAGE}/local/${novelId}`;
     const now = dayjs().toISOString();
 
-    if (novel.chapters && novel.chapters.length > 0) {
-      const totalChapters = novel.chapters.length;
+    const isExcludedChapter = (name: string, path: string) => {
+      const n = name.trim().toLowerCase();
+      const p = path.toLowerCase();
+      return (
+        n === 'cover' ||
+        n === 'nav' ||
+        n === 'book info' ||
+        n === 'toc' ||
+        n === 'table of contents' ||
+        p.endsWith('/cover.xhtml') ||
+        p.endsWith('/nav.xhtml') ||
+        p.endsWith('/book_info.xhtml') ||
+        p.endsWith('/toc.xhtml')
+      );
+    };
+
+    const chapters = (novel.chapters || []).filter(
+      ch => !isExcludedChapter(ch.name || '', ch.path || ''),
+    );
+
+    if (chapters.length > 0) {
+      const totalChapters = chapters.length;
       const reportProgress = createImportProgressReporter(setMeta);
 
-      const chapterRows = novel.chapters.map((chapter, i) => ({
+      const chapterRows = chapters.map((chapter, i) => ({
         novelId,
         name: chapter.name || chapter.path.split(/[/\\]/).pop() || 'unknown',
         path: `${NOVEL_STORAGE}/local/${novelId}/${i}`,
@@ -262,7 +382,7 @@ export const importEpub = async (
       const processChapterWorker = async () => {
         while (nextChapterIdx < totalChapters) {
           const idx = nextChapterIdx++;
-          const chapter = novel.chapters![idx];
+          const chapter = chapters[idx];
           const chapterId = chapterIdByPosition.get(idx);
 
           if (chapterId !== undefined) {
