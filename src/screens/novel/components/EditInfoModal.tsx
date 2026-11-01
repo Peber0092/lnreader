@@ -148,6 +148,19 @@ const EditInfoModalContent = ({
             style={styles.inputWrapper}
           />
           <TextInput
+            value={novelInfo.altNames ?? undefined}
+            placeholder={getString('novelScreen.edit.altNames')}
+            numberOfLines={3}
+            multiline
+            mode="outlined"
+            onChangeText={altNames =>
+              setNovelInfo(current => ({ ...current, altNames }))
+            }
+            theme={{ colors: { ...theme } }}
+            dense
+            style={styles.inputWrapper}
+          />
+          <TextInput
             value={novelInfo.author ?? undefined}
             placeholder={getString('novelScreen.edit.author', {
               author: novel.author,

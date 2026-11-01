@@ -357,6 +357,9 @@ const ensureNovelColumns = (executor: SqlExecutor) => {
     if (!novelColumnNames.has('comment')) {
       executor.executeSync("ALTER TABLE Novel ADD COLUMN 'comment' text;");
     }
+    if (!novelColumnNames.has('altNames')) {
+      executor.executeSync("ALTER TABLE Novel ADD COLUMN 'altNames' text;");
+    }
   } catch (e) {
     console.warn('Failed to ensure novel columns:', e);
   }

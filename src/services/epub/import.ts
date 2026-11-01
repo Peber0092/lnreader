@@ -37,6 +37,7 @@ const insertLocalNovel = async (
   summary?: string,
   genres?: string,
   comment?: string,
+  altNames?: string,
 ) => {
   const { insertId } = await dbManager.write(async tx => {
     return tx
@@ -65,6 +66,7 @@ const insertLocalNovel = async (
       summary: summary,
       genres: genres,
       comment: comment,
+      altNames: altNames,
       path: NOVEL_STORAGE + '/local/' + insertId,
       cover: newCoverPath,
       name: name,
@@ -143,6 +145,35 @@ const extractCommentFromOpf = async (
   return undefined;
 };
 
+const extractAltNamesFromOpf = async (
+  opfPath: string | null,
+): Promise<string | undefined> => {
+  if (!opfPath) return undefined;
+  try {
+    const xml = await NativeFile.readFile(opfPath);
+    // 1. <meta name="alt_names">value</meta>
+    const matchTag = xml.match(
+      /<meta[^>]*name=["']alt_names["'][^>]*>([\s\S]*?)<\/meta>/i,
+    );
+    if (matchTag && matchTag[1].trim()) return matchTag[1].trim();
+
+    // 2. <meta property="alt_names">value</meta>
+    const matchProp = xml.match(
+      /<meta[^>]*property=["']alt_names["'][^>]*>([\s\S]*?)<\/meta>/i,
+    );
+    if (matchProp && matchProp[1].trim()) return matchProp[1].trim();
+
+    // 3. <meta name="alt_names" content="value" />
+    const matchContent = xml.match(
+      /<meta[^>]*name=["']alt_names["'][^>]*content=["']([^"']*)["']/i,
+    );
+    if (matchContent && matchContent[1].trim()) return matchContent[1].trim();
+  } catch (e) {
+    console.warn('Failed to extract alt_names from OPF:', e);
+  }
+  return undefined;
+};
+
 export const importEpub = async (
   { uri, filename }: EpubImportFile,
   setMeta: TaskProgressUpdater,
@@ -166,6 +197,7 @@ export const importEpub = async (
 
     const opfPath = await findOpfPath(epubDirPath);
     const comment = await extractCommentFromOpf(opfPath);
+    const altNames = await extractAltNamesFromOpf(opfPath);
 
     const novel = await epub.parseNovelAndChapters(epubDirPath);
     if (!novel.name) {
@@ -180,6 +212,7 @@ export const importEpub = async (
       novel.summary || '',
       novel.genres || '',
       comment,
+      altNames,
     );
     const novelDir = `${NOVEL_STORAGE}/local/${novelId}`;
     const now = dayjs().toISOString();

@@ -563,6 +563,8 @@
     "continueReading": "Continue reading",
     "comment": "Comment",
     "noComment": "No comment added yet.",
+    "showMoreAltNames": "Show more (+%{count})",
+    "showLessAltNames": "Show less",
     "exportEpubModal": {
       "applyReaderTheme": "Apply reader theme to EPUB",
       "customJSWarning": "Custom JS may not be supported by all EPUB readers",
@@ -613,6 +615,7 @@
       "status": "Status:",
       "summary": "Description: %{summary}...",
       "comment": "Comment",
+      "altNames": "Alternative Names (one per line)",
       "title": "Title: %{title}"
     },
     "inLibaray": "In library",

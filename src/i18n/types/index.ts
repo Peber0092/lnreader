@@ -477,6 +477,8 @@ export interface StringMap {
   'novelScreen.chapters': 'string';
   'novelScreen.comment': 'string';
   'novelScreen.noComment': 'string';
+  'novelScreen.showMoreAltNames': 'string';
+  'novelScreen.showLessAltNames': 'string';
   'novelScreen.continueReading': 'string';
   'novelScreen.exportEpubModal.applyReaderTheme': 'string';
   'novelScreen.exportEpubModal.customJSWarning': 'string';
@@ -521,6 +523,7 @@ export interface StringMap {
   'novelScreen.edit.status': 'string';
   'novelScreen.edit.summary': 'string';
   'novelScreen.edit.comment': 'string';
+  'novelScreen.edit.altNames': 'string';
   'novelScreen.edit.title': 'string';
   'novelScreen.inLibaray': 'string';
   'novelScreen.jumpToChapterModal.chapterName': 'string';

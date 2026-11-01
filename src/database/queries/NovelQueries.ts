@@ -356,6 +356,7 @@ export const updateNovelInfo = async (info: NovelInfo) => {
       .update(novelSchema)
       .set({
         name: info.name,
+        altNames: info.altNames ?? null,
         cover: info.cover || '',
         path: info.path,
         summary: info.summary || '',

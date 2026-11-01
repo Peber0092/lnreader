@@ -59,6 +59,7 @@ export const getLibraryNovelsQuery = (
           ? or(
               like(novelSchema.name, `%${searchText}%`),
               like(novelSchema.author, `%${searchText}%`),
+              like(novelSchema.altNames, `%${searchText}%`),
             )
           : undefined,
       ),

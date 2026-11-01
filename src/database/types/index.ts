@@ -5,6 +5,7 @@ export interface NovelInfo {
   path: string;
   pluginId: string;
   name: string;
+  altNames?: string | null;
   cover?: string | null;
   summary?: string | null;
   author?: string | null;

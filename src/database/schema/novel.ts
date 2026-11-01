@@ -13,6 +13,7 @@ export const novel = sqliteTable(
     path: text('path').notNull(),
     pluginId: text('pluginId').notNull(),
     name: text('name').notNull(),
+    altNames: text('altNames'),
     cover: text('cover'),
     summary: text('summary'),
     comment: text('comment'),

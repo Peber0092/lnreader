@@ -1,4 +1,4 @@
-import React, { memo, useCallback, useMemo } from 'react';
+import React, { memo, useCallback, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 
 import * as Clipboard from 'expo-clipboard';
@@ -161,6 +161,29 @@ const NovelInfoHeader = ({
   }, [novel.author]);
 
 
+  const [showAllAltNames, setShowAllAltNames] = useState(false);
+
+  const altNamesList = useMemo(() => {
+    if (!novel.altNames) return [];
+    return novel.altNames
+      .split('\n')
+      .map(name => name.trim())
+      .filter(Boolean);
+  }, [novel.altNames]);
+
+  const displayedAltNames = useMemo(() => {
+    if (showAllAltNames || altNamesList.length <= 2) {
+      return altNamesList;
+    }
+    return altNamesList.slice(0, 2);
+  }, [altNamesList, showAllAltNames]);
+
+  const handleAltNamePress = useCallback((name: string) => {
+    Clipboard.setStringAsync(name).then(() =>
+      showToast(getString('common.copiedToClipboard', { name })),
+    );
+  }, []);
+
   const handleFollowNovel = useCallback(async () => {
     if (isLoading) {
       showNotAvailable();
@@ -228,6 +251,48 @@ const NovelInfoHeader = ({
                 {novel.name}
               </NovelTitle>
             </Row>
+            {altNamesList.length > 0 ? (
+              <View style={styles.altNamesContainer}>
+                {displayedAltNames.map((altName, idx) => (
+                  <Pressable
+                    key={idx + altName}
+                    onPress={() => handleAltNamePress(altName)}
+                    android_ripple={ripple}
+                    style={styles.altNamePressable}
+                  >
+                    <Text
+                      numberOfLines={1}
+                      style={[
+                        styles.altNameText,
+                        { color: theme.onSurfaceVariant },
+                      ]}
+                    >
+                      {altName}
+                    </Text>
+                  </Pressable>
+                ))}
+                {altNamesList.length > 2 ? (
+                  <Pressable
+                    onPress={() => setShowAllAltNames(prev => !prev)}
+                    android_ripple={ripple}
+                    style={styles.showMorePressable}
+                  >
+                    <Text
+                      style={[
+                        styles.showMoreText,
+                        { color: theme.primary },
+                      ]}
+                    >
+                      {showAllAltNames
+                        ? getString('novelScreen.showLessAltNames')
+                        : getString('novelScreen.showMoreAltNames', {
+                            count: altNamesList.length - 2,
+                          })}
+                    </Text>
+                  </Pressable>
+                ) : null}
+              </View>
+            ) : null}
             {isLoading && novel.id === 'NO_ID' ? (
               <NovelDetailsSkeleton theme={theme} />
             ) : (
@@ -372,6 +437,28 @@ const styles = StyleSheet.create({
   },
   flex: { flex: 1 },
   marginRight: { marginRight: 4 },
+  altNamesContainer: {
+    marginBottom: 6,
+    gap: 2,
+  },
+  altNamePressable: {
+    borderRadius: 4,
+    alignSelf: 'flex-start',
+    maxWidth: '100%',
+  },
+  altNameText: {
+    fontSize: 12,
+    lineHeight: 16,
+  },
+  showMorePressable: {
+    borderRadius: 4,
+    alignSelf: 'flex-start',
+    paddingVertical: 1,
+  },
+  showMoreText: {
+    fontSize: 11,
+    fontWeight: '500',
+  },
   authorPressable: {
     borderRadius: 4,
     alignSelf: 'flex-start',
