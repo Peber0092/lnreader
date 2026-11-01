@@ -1,58 +1,82 @@
-import React, { memo } from 'react';
-import { ScrollView, StyleSheet, Text } from 'react-native';
+import React, { memo, useEffect, useState } from 'react';
+import { StyleSheet } from 'react-native';
+import { TextInput } from 'react-native-paper';
 import { Dialog } from '@components';
 import { ThemeColors } from '@theme/types';
+import { NovelInfo } from '@database/types';
 import { getString } from '@i18n/translations';
+import { updateNovelInfo } from '@database/queries/NovelQueries';
+import { showToast } from '@utils/showToast';
 
 interface NovelCommentModalProps {
   theme: ThemeColors;
   visible: boolean;
-  comment?: string | null;
+  novel?: NovelInfo;
+  setNovel?: (novel: NovelInfo | undefined) => void;
   onDismiss: () => void;
-  onEdit: () => void;
 }
 
 const NovelCommentModal = ({
   theme,
   visible,
-  comment,
+  novel,
+  setNovel,
   onDismiss,
-  onEdit,
 }: NovelCommentModalProps) => {
-  const hasComment = Boolean(comment && comment.trim().length > 0);
+  const [commentText, setCommentText] = useState(novel?.comment || '');
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (visible) {
+      setCommentText(novel?.comment || '');
+    }
+  }, [novel?.comment, visible]);
+
+  const handleSave = async () => {
+    if (!novel) return;
+    setSaving(true);
+    try {
+      const nextComment = commentText.trim() || null;
+      const updatedNovel: NovelInfo = {
+        ...novel,
+        comment: nextComment,
+      };
+      await updateNovelInfo(updatedNovel);
+      setNovel?.(updatedNovel);
+      showToast(getString('common.done') || 'Saved');
+      onDismiss();
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : String(e));
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
-    <Dialog.Root visible={visible} onDismiss={onDismiss}>
+    <Dialog.Root visible={visible} onDismiss={() => !saving && onDismiss()}>
       <Dialog.Title>{getString('novelScreen.comment')}</Dialog.Title>
-      <Dialog.ScrollArea>
-        <ScrollView
-          contentContainerStyle={styles.contentContainer}
-          showsVerticalScrollIndicator={false}
-        >
-          {hasComment ? (
-            <Text style={[{ color: theme.onSurface }, styles.commentText]}>
-              {comment}
-            </Text>
-          ) : (
-            <Text
-              style={[{ color: theme.onSurfaceVariant }, styles.emptyComment]}
-            >
-              {getString('novelScreen.noComment')}
-            </Text>
-          )}
-        </ScrollView>
-      </Dialog.ScrollArea>
+      <Dialog.Content>
+        <TextInput
+          value={commentText}
+          placeholder={getString('novelScreen.comment')}
+          mode="outlined"
+          multiline
+          numberOfLines={4}
+          theme={{ colors: { ...theme } }}
+          onChangeText={setCommentText}
+          style={styles.textInput}
+        />
+      </Dialog.Content>
       <Dialog.Actions>
         <Dialog.Action
-          title={getString('common.edit')}
-          onPress={() => {
-            onDismiss();
-            onEdit();
-          }}
+          title={getString('common.cancel')}
+          disabled={saving}
+          onPress={onDismiss}
         />
         <Dialog.Action
-          title={getString('common.close')}
-          onPress={onDismiss}
+          title={getString('common.save')}
+          disabled={saving}
+          onPress={handleSave}
         />
       </Dialog.Actions>
     </Dialog.Root>
@@ -60,16 +84,9 @@ const NovelCommentModal = ({
 };
 
 const styles = StyleSheet.create({
-  contentContainer: {
-    paddingVertical: 8,
-  },
-  commentText: {
-    fontSize: 15,
-    lineHeight: 22,
-  },
-  emptyComment: {
-    fontSize: 14,
-    fontStyle: 'italic',
+  textInput: {
+    minHeight: 100,
+    textAlignVertical: 'top',
   },
 });
 

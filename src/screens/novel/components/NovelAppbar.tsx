@@ -11,6 +11,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import ExportNovelAsEpubButton from './ExportNovelAsEpubButton';
 import NovelCommentModal from './NovelCommentModal';
+import { useNovelAction } from '@screens/novel/NovelContext';
 import { NovelInfo } from '@database/types';
 import { StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
 import { MaterialDesignIconName } from '@type/icon';
@@ -133,6 +134,7 @@ const NovelAppbar = ({
 
   const [extraMenu, showExtraMenu] = useState(false);
   const [commentModalVisible, setCommentModalVisible] = useState(false);
+  const setNovel = useNovelAction('setNovel');
 
   const appbarTheme = useMemo(() => ({ colors: theme }), [theme]);
 
@@ -158,10 +160,6 @@ const NovelAppbar = ({
     }
 
     items.push(
-      {
-        label: getString('novelScreen.comment'),
-        onPress: () => setCommentModalVisible(true),
-      },
       {
         label: getString('novelScreen.edit.info'),
         onPress: () => showEditInfoModal(true),
@@ -241,9 +239,9 @@ const NovelAppbar = ({
       <NovelCommentModal
         theme={theme}
         visible={commentModalVisible}
-        comment={novel?.comment}
+        novel={novel}
+        setNovel={setNovel}
         onDismiss={() => setCommentModalVisible(false)}
-        onEdit={() => showEditInfoModal(true)}
       />
     </Animated.View>
   );

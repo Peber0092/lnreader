@@ -150,8 +150,7 @@ const EditInfoModalContent = ({
           <TextInput
             value={novelInfo.altNames ?? undefined}
             placeholder={getString('novelScreen.edit.altNames')}
-            numberOfLines={3}
-            multiline
+            numberOfLines={1}
             mode="outlined"
             onChangeText={altNames =>
               setNovelInfo(current => ({ ...current, altNames }))
@@ -159,6 +158,7 @@ const EditInfoModalContent = ({
             theme={{ colors: { ...theme } }}
             dense
             style={styles.inputWrapper}
+            contentStyle={{ textAlignVertical: 'center' }}
           />
           <TextInput
             value={novelInfo.author ?? undefined}
@@ -195,19 +195,6 @@ const EditInfoModalContent = ({
             mode="outlined"
             onChangeText={summary =>
               setNovelInfo(current => ({ ...current, summary }))
-            }
-            theme={{ colors: { ...theme } }}
-            dense
-            style={styles.inputWrapper}
-          />
-          <TextInput
-            value={novelInfo.comment ?? undefined}
-            placeholder={getString('novelScreen.edit.comment')}
-            numberOfLines={3}
-            multiline
-            mode="outlined"
-            onChangeText={comment =>
-              setNovelInfo(current => ({ ...current, comment }))
             }
             theme={{ colors: { ...theme } }}
             dense
