@@ -187,6 +187,19 @@ const EditInfoModalContent = ({
             dense
             style={styles.inputWrapper}
           />
+          <TextInput
+            value={novelInfo.comment ?? undefined}
+            placeholder={getString('novelScreen.edit.comment')}
+            numberOfLines={3}
+            multiline
+            mode="outlined"
+            onChangeText={comment =>
+              setNovelInfo(current => ({ ...current, comment }))
+            }
+            theme={{ colors: { ...theme } }}
+            dense
+            style={styles.inputWrapper}
+          />
 
           <TextInput
             value={newGenre}

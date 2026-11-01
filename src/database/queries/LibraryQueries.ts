@@ -55,7 +55,12 @@ export const getLibraryNovelsQuery = (
               eq(novelSchema.isLocal, true),
             )
           : undefined,
-        searchText ? like(novelSchema.name, `%${searchText}%`) : undefined,
+        searchText
+          ? or(
+              like(novelSchema.name, `%${searchText}%`),
+              like(novelSchema.author, `%${searchText}%`),
+            )
+          : undefined,
       ),
     )
     .$dynamic();

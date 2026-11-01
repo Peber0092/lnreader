@@ -561,6 +561,8 @@
     "chapterChapnum": "Chapter %{num}",
     "chapters": "chapters",
     "continueReading": "Continue reading",
+    "comment": "Comment",
+    "noComment": "No comment added yet.",
     "exportEpubModal": {
       "applyReaderTheme": "Apply reader theme to EPUB",
       "customJSWarning": "Custom JS may not be supported by all EPUB readers",
@@ -610,6 +612,7 @@
       "info": "Edit info",
       "status": "Status:",
       "summary": "Description: %{summary}...",
+      "comment": "Comment",
       "title": "Title: %{title}"
     },
     "inLibaray": "In library",

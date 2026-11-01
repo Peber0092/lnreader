@@ -359,6 +359,7 @@ export const updateNovelInfo = async (info: NovelInfo) => {
         cover: info.cover || '',
         path: info.path,
         summary: info.summary || '',
+        comment: info.comment ?? null,
         author: info.author || '',
         artist: info.artist || '',
         genres: info.genres || '',

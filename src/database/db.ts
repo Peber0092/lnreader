@@ -350,7 +350,20 @@ const createDbTriggers = (executor: SqlExecutor) => {
   executor.executeSync(createNovelTriggerQueryUpdate);
 };
 
+const ensureNovelColumns = (executor: SqlExecutor) => {
+  try {
+    const novelColumns = _db.executeRawSync('PRAGMA table_info(Novel);');
+    const novelColumnNames = new Set(novelColumns.map(row => row[1]));
+    if (!novelColumnNames.has('comment')) {
+      executor.executeSync("ALTER TABLE Novel ADD COLUMN 'comment' text;");
+    }
+  } catch (e) {
+    console.warn('Failed to ensure novel columns:', e);
+  }
+};
+
 export const runDatabaseBootstrap = (executor: SqlExecutor) => {
+  ensureNovelColumns(executor);
   createDbTriggers(executor);
   populateDatabase(executor);
 };

@@ -36,6 +36,7 @@ const insertLocalNovel = async (
   artist?: string,
   summary?: string,
   genres?: string,
+  comment?: string,
 ) => {
   const { insertId } = await dbManager.write(async tx => {
     return tx
@@ -63,6 +64,7 @@ const insertLocalNovel = async (
       artist: artist,
       summary: summary,
       genres: genres,
+      comment: comment,
       path: NOVEL_STORAGE + '/local/' + insertId,
       cover: newCoverPath,
       name: name,
@@ -78,48 +80,67 @@ const insertLocalNovel = async (
   throw new Error(getString('advancedSettingsScreen.novelInsertFailed'));
 };
 
-const insertLocalChapter = async (
-  novelId: number,
-  fakeId: number,
-  name: string,
-  path: string,
-  releaseTime: string,
-) => {
-  const { insertId } = await dbManager.write(async tx => {
-    return tx
-      .insert(chapterSchema)
-      .values({
-        novelId,
-        name,
-        path: NOVEL_STORAGE + '/local/' + novelId + '/' + fakeId,
-        releaseTime,
-        position: fakeId,
-        isDownloaded: true,
-      })
-      .run();
-  });
+const FILE_CONCURRENCY = 8;
+const ASSET_CONCURRENCY = 8;
+const DB_BATCH_SIZE = 100;
 
-  if (insertId !== undefined && insertId >= 0) {
-    let chapterText: string = '';
-    chapterText = await NativeFile.readFile(decodePath(path));
-    if (!chapterText) {
-      return [];
+const findOpfPath = async (dir: string): Promise<string | null> => {
+  try {
+    const containerPath = dir + '/META-INF/container.xml';
+    if (await NativeFile.exists(containerPath)) {
+      const xml = await NativeFile.readFile(containerPath);
+      const match = xml.match(/full-path=["']([^"']+\.opf)["']/i);
+      if (match && match[1]) {
+        const full = dir + '/' + match[1];
+        if (await NativeFile.exists(full)) {
+          return full;
+        }
+      }
     }
-    const novelDir = `${NOVEL_STORAGE}/local/${novelId}`;
-    chapterText = chapterText.replace(
-      /[=](?<= href=| src=)(["'])([^]*?)\1/g,
-      (_, __, $2: string) => {
-        return `="file://${novelDir}/${$2.split(/[/\\]/).pop()}"`;
-      },
-    );
-    await NativeFile.mkdir(novelDir + '/' + insertId);
-    await NativeFile.writeFile(
-      `${novelDir}/${insertId}/index.html`,
-      chapterText,
-    );
-    return;
+  } catch {}
+  for (const candidate of [
+    dir + '/content.opf',
+    dir + '/EPUB/content.opf',
+    dir + '/OEBPS/content.opf',
+  ]) {
+    if (await NativeFile.exists(candidate)) {
+      return candidate;
+    }
   }
-  throw new Error(getString('advancedSettingsScreen.chapterInsertFailed'));
+  return null;
+};
+
+const extractCommentFromOpf = async (
+  opfPath: string | null,
+): Promise<string | undefined> => {
+  if (!opfPath) return undefined;
+  try {
+    const xml = await NativeFile.readFile(opfPath);
+    // 1. <meta name="comment">value</meta>
+    const matchTag = xml.match(
+      /<meta[^>]*name=["']comment["'][^>]*>([\s\S]*?)<\/meta>/i,
+    );
+    if (matchTag && matchTag[1].trim()) return matchTag[1].trim();
+
+    // 2. <meta property="comment">value</meta>
+    const matchProp = xml.match(
+      /<meta[^>]*property=["']comment["'][^>]*>([\s\S]*?)<\/meta>/i,
+    );
+    if (matchProp && matchProp[1].trim()) return matchProp[1].trim();
+
+    // 3. <meta name="comment" content="value" />
+    const matchContent = xml.match(
+      /<meta[^>]*name=["']comment["'][^>]*content=["']([^"']*)["']/i,
+    );
+    if (matchContent && matchContent[1].trim()) return matchContent[1].trim();
+
+    // 4. <comment>value</comment>
+    const matchCustom = xml.match(/<comment>([\s\S]*?)<\/comment>/i);
+    if (matchCustom && matchCustom[1].trim()) return matchCustom[1].trim();
+  } catch (e) {
+    console.warn('Failed to extract comment from OPF:', e);
+  }
+  return undefined;
 };
 
 export const importEpub = async (
@@ -143,6 +164,9 @@ export const importEpub = async (
     await NativeFile.copyFile(uri, epubFilePath);
     await NativeZipArchive.unzip(epubFilePath, epubDirPath);
 
+    const opfPath = await findOpfPath(epubDirPath);
+    const comment = await extractCommentFromOpf(opfPath);
+
     const novel = await epub.parseNovelAndChapters(epubDirPath);
     if (!novel.name) {
       novel.name = filename.replace('.epub', '') || 'Untitled';
@@ -155,46 +179,143 @@ export const importEpub = async (
       novel.artist || '',
       novel.summary || '',
       novel.genres || '',
+      comment,
     );
+    const novelDir = `${NOVEL_STORAGE}/local/${novelId}`;
     const now = dayjs().toISOString();
-    if (novel.chapters) {
+
+    if (novel.chapters && novel.chapters.length > 0) {
+      const totalChapters = novel.chapters.length;
       const reportProgress = createImportProgressReporter(setMeta);
-      for (let i = 0; i < novel.chapters?.length; i++) {
-        const chapter = novel.chapters[i];
-        if (!chapter.name) {
-          chapter.name = chapter.path.split(/[/\\]/).pop() || 'unknown';
+
+      const chapterRows = novel.chapters.map((chapter, i) => ({
+        novelId,
+        name: chapter.name || chapter.path.split(/[/\\]/).pop() || 'unknown',
+        path: `${NOVEL_STORAGE}/local/${novelId}/${i}`,
+        releaseTime: now,
+        position: i,
+        isDownloaded: true,
+      }));
+
+      // 1. Batch insert all chapters into SQLite in a single transaction
+      const chapterIdByPosition = new Map<number, number>();
+
+      await dbManager.write(async tx => {
+        for (let i = 0; i < chapterRows.length; i += DB_BATCH_SIZE) {
+          const batch = chapterRows.slice(i, i + DB_BATCH_SIZE);
+          const inserted = await tx
+            .insert(chapterSchema)
+            .values(batch)
+            .returning({
+              id: chapterSchema.id,
+              position: chapterSchema.position,
+            })
+            .all();
+
+          for (const row of inserted) {
+            chapterIdByPosition.set(row.position, row.id);
+          }
         }
+      });
 
-        await insertLocalChapter(novelId, i, chapter.name, chapter.path, now);
-        reportProgress(i + 1, novel.chapters.length, chapter.name);
+      if (chapterIdByPosition.size !== totalChapters) {
+        throw new Error(getString('advancedSettingsScreen.chapterInsertFailed'));
       }
+
+      // 2. Concurrently read, rewrite URLs, and write chapter HTML files
+      let nextChapterIdx = 0;
+      let completedChapters = 0;
+
+      const processChapterWorker = async () => {
+        while (nextChapterIdx < totalChapters) {
+          const idx = nextChapterIdx++;
+          const chapter = novel.chapters![idx];
+          const chapterId = chapterIdByPosition.get(idx);
+
+          if (chapterId !== undefined) {
+            try {
+              const chapterText = await NativeFile.readFile(
+                decodePath(chapter.path),
+              );
+              if (chapterText) {
+                const processedText = chapterText.replace(
+                  /[=](?<= href=| src=)(["'])([^]*?)\1/g,
+                  (_, __, $2: string) =>
+                    `="file://${novelDir}/${$2.split(/[/\\]/).pop()}"`,
+                );
+                const chapterDir = `${novelDir}/${chapterId}`;
+                await NativeFile.mkdir(chapterDir);
+                await NativeFile.writeFile(
+                  `${chapterDir}/index.html`,
+                  processedText,
+                );
+              }
+            } catch {
+              // Ignore non-fatal individual chapter read/write error
+            }
+          }
+
+          completedChapters++;
+          reportProgress(
+            completedChapters,
+            totalChapters,
+            chapter.name || chapterRows[idx].name,
+          );
+        }
+      };
+
+      const workerCount = Math.min(FILE_CONCURRENCY, totalChapters);
+      await Promise.all(
+        Array.from({ length: workerCount }, () => processChapterWorker()),
+      );
     }
-    const novelDir = NOVEL_STORAGE + '/local/' + novelId;
 
-    setMeta(meta => ({
-      ...meta,
-      progressText: getString('advancedSettingsScreen.importStaticFiles'),
-    }));
+    // 3. Move static assets (images and stylesheets) concurrently
+    const staticFiles = [
+      ...(novel.imagePaths || []),
+      ...(novel.cssPaths || []),
+    ];
 
-    for (const filePath of novel.imagePaths) {
-      const decodedPath = decodePath(filePath);
+    if (staticFiles.length > 0) {
+      setMeta(meta => ({
+        ...meta,
+        progressText: getString('advancedSettingsScreen.importStaticFiles'),
+      }));
 
-      if (await NativeFile.exists(decodedPath)) {
-        await NativeFile.moveFile(
-          decodedPath,
-          novelDir + '/' + filePath.split(/[/\\]/).pop(),
-        );
-      }
+      let nextAssetIdx = 0;
+      const moveAssetWorker = async () => {
+        while (nextAssetIdx < staticFiles.length) {
+          const filePath = staticFiles[nextAssetIdx++];
+          const decodedPath = decodePath(filePath);
+          try {
+            if (await NativeFile.exists(decodedPath)) {
+              await NativeFile.moveFile(
+                decodedPath,
+                `${novelDir}/${filePath.split(/[/\\]/).pop()}`,
+              );
+            }
+          } catch {
+            // Ignore non-fatal individual asset move error
+          }
+        }
+      };
+
+      const assetWorkerCount = Math.min(ASSET_CONCURRENCY, staticFiles.length);
+      await Promise.all(
+        Array.from({ length: assetWorkerCount }, () => moveAssetWorker()),
+      );
     }
 
-    for (const filePath of novel.cssPaths) {
-      const decodedPath = decodePath(filePath);
-      if (await NativeFile.exists(decodedPath)) {
-        await NativeFile.moveFile(
-          decodedPath,
-          novelDir + '/' + filePath.split(/[/\\]/).pop(),
-        );
+    // 4. Clean up temporary unzipped EPUB cache
+    try {
+      if (await NativeFile.exists(epubDirPath)) {
+        await NativeFile.unlink(epubDirPath);
       }
+      if (await NativeFile.exists(epubFilePath)) {
+        await NativeFile.unlink(epubFilePath);
+      }
+    } catch {
+      // Non-fatal cache cleanup
     }
   } catch (error) {
     showToast(

@@ -145,6 +145,22 @@ const NovelInfoHeader = ({
 
   const handleTitleLongPress = handleTitlePress;
 
+  const handleAuthorPress = useCallback(() => {
+    if (!novel.author) return;
+    (navigation as any).navigate('BottomNavigator', {
+      screen: 'Library',
+      params: { searchAuthor: novel.author },
+    });
+  }, [navigation, novel.author]);
+
+  const handleAuthorLongPress = useCallback(() => {
+    if (!novel.author) return;
+    Clipboard.setStringAsync(novel.author).then(() =>
+      showToast(getString('common.copiedToClipboard', { name: novel.author })),
+    );
+  }, [novel.author]);
+
+
   const handleFollowNovel = useCallback(async () => {
     if (isLoading) {
       showNotAvailable();
@@ -217,15 +233,22 @@ const NovelInfoHeader = ({
             ) : (
               <>
                 {novel.id !== 'NO_ID' && novel.author ? (
-                  <Row style={styles.infoRow}>
-                    <MaterialCommunityIcons
-                      name="fountain-pen-tip"
-                      size={14}
-                      color={theme.onSurfaceVariant}
-                      style={styles.marginRight}
-                    />
-                    <NovelInfo theme={theme}>{novel.author}</NovelInfo>
-                  </Row>
+                  <Pressable
+                    onPress={handleAuthorPress}
+                    onLongPress={handleAuthorLongPress}
+                    android_ripple={ripple}
+                    style={styles.authorPressable}
+                  >
+                    <Row style={styles.infoRow}>
+                      <MaterialCommunityIcons
+                        name="fountain-pen-tip"
+                        size={14}
+                        color={theme.onSurfaceVariant}
+                        style={styles.marginRight}
+                      />
+                      <NovelInfo theme={theme}>{novel.author}</NovelInfo>
+                    </Row>
+                  </Pressable>
                 ) : null}
                 {novel.id !== 'NO_ID' && novel.artist ? (
                   <Row style={styles.infoRow}>
@@ -349,6 +372,10 @@ const styles = StyleSheet.create({
   },
   flex: { flex: 1 },
   marginRight: { marginRight: 4 },
+  authorPressable: {
+    borderRadius: 4,
+    alignSelf: 'flex-start',
+  },
   novelDetails: {
     flex: 1,
     flexDirection: 'column',

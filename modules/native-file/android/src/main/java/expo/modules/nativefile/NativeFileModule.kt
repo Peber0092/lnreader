@@ -423,7 +423,9 @@ class NativeFileModule : Module() {
         AsyncFunction("writeFile") { path: String, content: String, promise: Promise ->
             coroutineScope.launch {
                 try {
-                    FileWriter(path).use { it.write(content) }
+                    val file = File(path)
+                    file.parentFile?.mkdirs()
+                    FileWriter(file).use { it.write(content) }
                     promise.resolve(null)
                 } catch (e: Exception) {
                     rejectFileOperation(promise, "write", path, e)

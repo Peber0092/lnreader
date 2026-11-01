@@ -15,6 +15,7 @@ export const novel = sqliteTable(
     name: text('name').notNull(),
     cover: text('cover'),
     summary: text('summary'),
+    comment: text('comment'),
     author: text('author'),
     artist: text('artist'),
     status: text('status').default('Unknown'),

@@ -33,7 +33,7 @@ export type RootStackParamList = {
 };
 
 export type BottomNavigatorParamList = {
-  Library: { filterGenre?: string } | undefined;
+  Library: { filterGenre?: string; searchAuthor?: string } | undefined;
   Updates: undefined;
   History: undefined;
   Browse: undefined;

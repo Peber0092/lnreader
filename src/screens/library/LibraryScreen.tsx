@@ -268,7 +268,16 @@ const LibraryScreen = ({ navigation, route }: LibraryScreenProps) => {
       setSearchText(route.params.filterGenre);
       navigation.setParams({ filterGenre: undefined });
     }
-  }, [route?.params?.filterGenre, setSearchText, navigation]);
+    if (route?.params?.searchAuthor) {
+      setSearchText(route.params.searchAuthor);
+      navigation.setParams({ searchAuthor: undefined });
+    }
+  }, [
+    route?.params?.filterGenre,
+    route?.params?.searchAuthor,
+    setSearchText,
+    navigation,
+  ]);
 
   useBackHandler(() => {
     if (selectedNovelIds.length) {
